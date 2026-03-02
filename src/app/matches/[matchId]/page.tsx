@@ -50,7 +50,12 @@ export default async function MatchDetailPage({
     .from(matchEvents)
     .where(eq(matchEvents.matchId, matchId));
 
-  const config = match.config as Record<string, unknown>;
+  const config = match.config as {
+    appSpec?: string;
+    vulnerabilityCount?: number;
+    buildTimeLimitSeconds?: number;
+    attackTimeLimitSeconds?: number;
+  } | null;
   const isActive = ["building", "deploying", "attacking", "scoring"].includes(
     match.status
   );
