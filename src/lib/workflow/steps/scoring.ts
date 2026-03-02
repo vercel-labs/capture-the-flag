@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/client";
 import { matches, players, vulnerabilities, flagCaptures } from "@/lib/db/schema";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { redis } from "@/lib/redis/client";
 import { redisKeys } from "@/lib/redis/keys";
 import {

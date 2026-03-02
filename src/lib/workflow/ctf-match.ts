@@ -24,10 +24,8 @@ export async function ctfMatchWorkflow(input: CtfMatchInput) {
     slackThreadTs: input.slackThreadTs,
   });
 
-  // Create a hook for manual stop
-  const stopHook = createHook<{ reason: string }>({
-    token: `ctf-stop:${matchId}`,
-  });
+  // Create a hook for manual stop — resumeHook("ctf-stop:{matchId}") cancels
+  createHook<{ reason: string }>({ token: `ctf-stop:${matchId}` });
 
   // Step 2: Build — each model builds an app in a sandbox (parallel)
   const buildResults = await buildAllApps(
@@ -63,7 +61,7 @@ export async function ctfMatchWorkflow(input: CtfMatchInput) {
   }
 
   // Step 4: Attack — models attack each other's apps
-  const attackResult = await runAttackPhase({
+  await runAttackPhase({
     matchId,
     config,
     playerApps: healthyApps,

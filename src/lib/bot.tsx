@@ -2,26 +2,14 @@
 import { Chat } from "chat";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createRedisState } from "@chat-adapter/state-redis";
-import {
-  Modal,
-  TextInput,
-  Select,
-  SelectOption,
-  Card,
-  CardText,
-  Actions,
-  Button,
-  Fields,
-  Field,
-  Divider,
-} from "chat";
+import { Modal, TextInput } from "chat";
 import { start } from "workflow/api";
 import { ctfMatchWorkflow } from "@/lib/workflow/ctf-match";
 import { matchConfigSchema } from "@/lib/config/types";
 import { DEFAULT_MATCH_CONFIG } from "@/lib/config/defaults";
 import { db } from "@/lib/db/client";
-import { matches, players, leaderboardStats } from "@/lib/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { players, leaderboardStats } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { redis } from "@/lib/redis/client";
 import { redisKeys } from "@/lib/redis/keys";
 import { resumeHook } from "workflow/api";

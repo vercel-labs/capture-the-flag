@@ -1,6 +1,6 @@
 import { db } from "@/lib/db/client";
 import { leaderboardStats } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import type { PlayerScore } from "./engine";
 
 /**
