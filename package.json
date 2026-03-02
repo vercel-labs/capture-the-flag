@@ -9,18 +9,34 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/gateway": "^3.0.60",
+    "@chat-adapter/slack": "^4.15.0",
+    "@chat-adapter/state-redis": "^4.15.0",
+    "@neondatabase/serverless": "^1.0.2",
+    "@upstash/redis": "^1.36.3",
+    "@vercel/sandbox": "^1.8.0",
+    "ai": "^6.0.106",
+    "chat": "^4.15.0",
+    "drizzle-orm": "^0.45.1",
+    "nanoid": "^5.1.6",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "workflow": "4.1.0-beta.60",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.9",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.18"
   }
 }
