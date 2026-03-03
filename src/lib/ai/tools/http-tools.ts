@@ -1,12 +1,12 @@
 import { tool } from "ai";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export function createHttpTools() {
   return {
     httpRequest: tool({
       description:
         "Make an HTTP request to a URL. Use this to interact with web applications during penetration testing.",
-      parameters: z.object({
+      inputSchema: z.object({
         url: z.string().describe("The full URL to request"),
         method: z
           .enum(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])

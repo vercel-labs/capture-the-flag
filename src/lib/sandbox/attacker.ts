@@ -118,10 +118,10 @@ export async function attackApp(
         ...httpTools,
         ...flagTools,
       },
-      maxTokens: 16384,
+      maxOutputTokens: 16384,
       temperature: 0.3,
       maxRetries: 2,
-      timeout: config.attackTimeLimitSeconds * 1000,
+      timeout: { totalMs: config.attackTimeLimitSeconds * 1000 },
     });
 
     return {

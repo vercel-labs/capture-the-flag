@@ -1,5 +1,5 @@
 import { tool } from "ai";
-import { z } from "zod/v4";
+import { z } from "zod";
 import type { VulnerabilityCategory } from "@/lib/config/types";
 
 interface FlagSubmitCallback {
@@ -29,7 +29,7 @@ export function createFlagTools(callbacks: {
     submitFlag: tool({
       description:
         "Submit a captured CTF flag. Use this when you find a flag token (format: CTF{...}) during penetration testing.",
-      parameters: z.object({
+      inputSchema: z.object({
         flag: z.string().describe("The flag token to submit (e.g., CTF{a3f2_07_e9c1b4d82f6a0753})"),
         method: z
           .string()
@@ -46,7 +46,7 @@ export function createFlagTools(callbacks: {
     registerVulnerability: tool({
       description:
         "Register a planted vulnerability after building it into the application. Call this for each vulnerability you create.",
-      parameters: z.object({
+      inputSchema: z.object({
         category: z.enum([
           "xss",
           "sqli",

@@ -1,5 +1,5 @@
 import { tool } from "ai";
-import { z } from "zod/v4";
+import { z } from "zod";
 import type { Sandbox } from "@vercel/sandbox";
 
 export function createSandboxTools(sandbox: Sandbox) {
@@ -7,7 +7,7 @@ export function createSandboxTools(sandbox: Sandbox) {
     writeFile: tool({
       description:
         "Write a file to the sandbox filesystem. The path is relative to /vercel/sandbox.",
-      parameters: z.object({
+      inputSchema: z.object({
         path: z.string().describe("File path relative to /vercel/sandbox"),
         content: z.string().describe("File content to write"),
       }),
@@ -22,7 +22,7 @@ export function createSandboxTools(sandbox: Sandbox) {
     readFile: tool({
       description:
         "Read a file from the sandbox filesystem. Returns the file content as text.",
-      parameters: z.object({
+      inputSchema: z.object({
         path: z.string().describe("File path relative to /vercel/sandbox"),
       }),
       execute: async ({ path }) => {
@@ -37,7 +37,7 @@ export function createSandboxTools(sandbox: Sandbox) {
     runCommand: tool({
       description:
         "Run a shell command in the sandbox. Returns stdout and stderr.",
-      parameters: z.object({
+      inputSchema: z.object({
         command: z.string().describe("The command to run (e.g., 'npm')"),
         args: z
           .array(z.string())

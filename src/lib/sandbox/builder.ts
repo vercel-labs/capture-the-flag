@@ -115,10 +115,10 @@ export async function buildApp(
         ...sandboxTools,
         ...flagTools,
       },
-      maxTokens: 16384,
+      maxOutputTokens: 16384,
       temperature: 0.7,
       maxRetries: 2,
-      timeout: config.buildTimeLimitSeconds * 1000,
+      timeout: { totalMs: config.buildTimeLimitSeconds * 1000 },
     });
 
     // Lock sandbox network after build

@@ -33,18 +33,15 @@ export async function cleanupMatch(matchId: string): Promise<void> {
   const timeline = await getMatchTimeline(matchId);
   if (timeline.length > 0) {
     await db.insert(matchEvents).values(
-      timeline.map((event) => ({
-        matchId,
-        playerId: (event as Record<string, unknown>).playerId as
-          | string
-          | undefined,
-        eventType:
-          (event as Record<string, unknown>).eventType as string,
-        payload: (event as Record<string, unknown>).payload as Record<
-          string,
-          unknown
-        >,
-      }))
+      timeline.map((event) => {
+        const e = event as unknown as Record<string, unknown>;
+        return {
+          matchId,
+          playerId: e.playerId as string | undefined,
+          eventType: e.eventType as string,
+          payload: e.payload as Record<string, unknown>,
+        };
+      })
     );
   }
 
