@@ -15,22 +15,22 @@ The entire match is orchestrated by a durable Vercel Workflow that survives rest
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Vercel Workflow                           │
-│  Setup → Build → Deploy Verify → Attack → Score → Cleanup       │
-└──────┬───────────────┬───────────────────┬───────────────────────┘
-       │               │                   │
-       ▼               ▼                   ▼
-┌─────────────┐ ┌─────────────┐    ┌─────────────┐
-│   Builder   │ │   Builder   │    │  Attacker   │
-│  Sandbox A  │ │  Sandbox B  │    │  Sandbox    │
-│  (node24)   │ │  (node24)   │    │  (node24)   │
-│ allow → deny│ │ allow → deny│    │ restricted  │
-└─────────────┘ └─────────────┘    └─────────────┘
-       │               │                   │
-       ▼               ▼                   │
-┌─────────────┐ ┌─────────────┐            │
-│  App A      │ │  App B      │◄───────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                              Vercel Workflow                                 │
+│        Setup → Build → Deploy Verify → Attack → Score → Cleanup             │
+└──────┬───────────────┬───────────────────┬──────────────────┬───────────────┘
+       │               │                   │                  │
+       ▼               ▼                   ▼                  ▼
+┌─────────────┐ ┌─────────────┐    ┌─────────────┐ ┌─────────────┐
+│   Builder   │ │   Builder   │    │  Attacker   │ │  Attacker   │
+│  Sandbox A  │ │  Sandbox B  │    │  Sandbox A  │ │  Sandbox B  │
+│  (node24)   │ │  (node24)   │    │  (node24)   │ │  (node24)   │
+│ allow → deny│ │ allow → deny│    │ restricted  │ │ restricted  │
+└─────────────┘ └─────────────┘    └──────┬──────┘ └──────┬──────┘
+       │               │                  │               │
+       ▼               ▼                  │               │
+┌─────────────┐ ┌─────────────┐           │               │
+│  App A      │ │  App B      │◄──────────┴───────────────┘
 │  :3000      │ │  :3000      │
 └─────────────┘ └─────────────┘
        │               │
@@ -145,6 +145,28 @@ Sandboxes use `@vercel/sandbox` with the Node.js 24 runtime, port 3000, and a 10
 | `httpRequest` | No | Yes | Make HTTP requests to the target app |
 | `submitFlag` | No | Yes | Submit a captured flag for validation |
 | `registerVulnerability` | Yes | No | Register a planted vulnerability and flag |
+
+## Sandboxes Per Match
+
+For a 2-model match (A vs B), **4 sandboxes** are created:
+
+| # | Phase | Sandbox | Network Policy | Purpose |
+|---|-------|---------|---------------|---------|
+| 1 | Build | Builder A | `allow-all` → `deny-all` | Model A builds and serves its app |
+| 2 | Build | Builder B | `allow-all` → `deny-all` | Model B builds and serves its app |
+| 3 | Attack | Attacker A→B | `{B's domain, ai-gateway.vercel.sh}` | Model A attacks Model B's app |
+| 4 | Attack | Attacker B→A | `{A's domain, ai-gateway.vercel.sh}` | Model B attacks Model A's app |
+
+For an N-model match: N builder sandboxes + N×(N-1) attacker sandboxes.
+
+### Creation Order
+
+1. **Build phase** — All builder sandboxes created in parallel (`Promise.all`). Network starts as `allow-all` for `npm install`, then locked to `deny-all` after build via `lockSandboxNetwork`.
+2. **Deploy verification** — Health-checks builder sandbox URLs. No new sandboxes created.
+3. **Attack phase** — All attacker sandboxes created in parallel for every attacker-target pair. Each sandbox's network is restricted to the target domain + `ai-gateway.vercel.sh`.
+4. **Cleanup** — All sandboxes (builders + attackers) are stopped.
+
+Builder sandboxes persist through the entire match so they can serve apps during the attack phase.
 
 ## AI Model Configuration
 
