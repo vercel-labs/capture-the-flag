@@ -42,6 +42,10 @@ vi.mock("@/lib/redis/client", () => ({
   },
 }));
 
+vi.mock("@/lib/events/emitter", () => ({
+  emitMatchEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/lib/redis/keys", () => ({
   redisKeys: {
     matchFlags: (id: string) => `ctf:match:${id}:flags`,
@@ -51,6 +55,7 @@ vi.mock("@/lib/redis/keys", () => ({
 import { buildApp } from "@/lib/sandbox/builder";
 import { createBuilderSandbox } from "@/lib/sandbox/manager";
 import { generateText, stepCountIs } from "ai";
+import { emitMatchEvent } from "@/lib/events/emitter";
 
 describe("buildApp sandbox cleanup", () => {
   const mockSandbox = {
@@ -137,5 +142,40 @@ describe("buildApp sandbox cleanup", () => {
         stopWhen: stepCountIs(20),
       })
     );
+  });
+
+  it("emits vulnerability_registered event when vuln is registered", async () => {
+    // Mock generateText to invoke the registerVulnerability tool callback
+    vi.mocked(generateText).mockImplementation(async (opts: Record<string, unknown>) => {
+      const tools = opts.tools as Record<string, { execute: (args: Record<string, unknown>) => Promise<unknown> }>;
+      if (tools.registerVulnerability) {
+        await tools.registerVulnerability.execute({
+          category: "xss",
+          description: "XSS in search",
+          flagToken: "CTF{test_01_0000000000000001}",
+          location: "/search",
+          difficulty: 5,
+        });
+      }
+      return {} as never;
+    });
+
+    await buildApp("match-1", "player-1", "test/model", {
+      appSpec: "test app",
+      vulnerabilityCount: 1,
+      models: ["test/model", "test/model2"],
+      buildTimeLimitSeconds: 60,
+      attackTimeLimitSeconds: 60,
+    });
+
+    expect(emitMatchEvent).toHaveBeenCalledWith("match-1", {
+      eventType: "vulnerability_registered",
+      playerId: "player-1",
+      payload: {
+        category: "xss",
+        location: "/search",
+        difficulty: 5,
+      },
+    });
   });
 });

@@ -56,6 +56,7 @@ export const matchEventTypes = [
   "build_progress",
   "build_completed",
   "build_failed",
+  "vulnerability_registered",
   "deploy_started",
   "deploy_completed",
   "deploy_failed",
