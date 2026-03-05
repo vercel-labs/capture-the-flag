@@ -8,6 +8,8 @@ const STATUS_STYLES: Record<string, { color: string; dot: string }> = {
   building: { color: "text-warning", dot: "bg-warning animate-pulse" },
   completed: { color: "text-accent", dot: "bg-accent" },
   failed: { color: "text-danger", dot: "bg-danger" },
+  deploying: { color: "text-warning", dot: "bg-warning animate-pulse" },
+  live: { color: "text-accent", dot: "bg-accent animate-pulse" },
   attacking: { color: "text-danger", dot: "bg-danger animate-pulse" },
 };
 
