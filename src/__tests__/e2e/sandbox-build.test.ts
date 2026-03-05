@@ -65,7 +65,7 @@ app.listen(3000, () => console.log('Server running on port 3000'));
         await new Promise((r) => setTimeout(r, 3000));
 
         // Health check via the sandbox URL
-        const appUrl = `https://${sandbox.domain(SANDBOX_CONFIG.port)}`;
+        const appUrl = sandbox.domain(SANDBOX_CONFIG.port);
         const response = await fetch(`${appUrl}/health`, {
           signal: AbortSignal.timeout(10000),
         });

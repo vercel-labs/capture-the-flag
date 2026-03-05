@@ -39,7 +39,7 @@ export async function createBuilderSandbox(
   return {
     sandbox,
     sandboxId: sandbox.sandboxId,
-    appUrl: `https://${appUrl}`,
+    appUrl,
   };
 }
 
@@ -64,7 +64,7 @@ export async function createAttackerSandbox(
   return {
     sandbox,
     sandboxId: sandbox.sandboxId,
-    appUrl: `https://${appUrl}`,
+    appUrl,
   };
 }
 
