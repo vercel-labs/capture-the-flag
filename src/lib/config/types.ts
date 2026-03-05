@@ -1,15 +1,19 @@
 import { z } from "zod/v4";
 
 export const matchConfigSchema = z.object({
-  appSpec: z.string().default("A Next.js ecommerce site"),
-  vulnerabilityCount: z.number().int().min(1).max(20).default(10),
+  appSpec: z
+    .string()
+    .default(
+      "An Express.js web application with user authentication and a simple data API"
+    ),
+  vulnerabilityCount: z.number().int().min(1).max(20).default(5),
   models: z
     .array(z.string())
     .min(2)
     .default([
-      "anthropic/claude-opus-4.5",
-      "openai/gpt-5.1-codex",
-      "xai/grok-4.1-fast-reasoning",
+      "anthropic/claude-sonnet-4",
+      "openai/gpt-4.1",
+      "xai/grok-3",
     ]),
   buildTimeLimitSeconds: z.number().int().min(60).max(1800).default(600),
   attackTimeLimitSeconds: z.number().int().min(60).max(3600).default(600),

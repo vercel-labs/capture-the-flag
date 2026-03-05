@@ -1,12 +1,13 @@
 import type { MatchConfig } from "./types";
 
 export const DEFAULT_MATCH_CONFIG: MatchConfig = {
-  appSpec: "A Next.js ecommerce site",
-  vulnerabilityCount: 10,
+  appSpec:
+    "An Express.js web application with user authentication and a simple data API",
+  vulnerabilityCount: 5,
   models: [
-    "anthropic/claude-opus-4.5",
-    "openai/gpt-5.1-codex",
-    "xai/grok-4.1-fast-reasoning",
+    "anthropic/claude-sonnet-4",
+    "openai/gpt-4.1",
+    "xai/grok-3",
   ],
   buildTimeLimitSeconds: 600,
   attackTimeLimitSeconds: 600,
@@ -24,6 +25,7 @@ export const SANDBOX_CONFIG = {
   timeoutMs: 10 * 60 * 1000,
   healthCheckRetries: 5,
   healthCheckBackoffMs: 2000,
+  snapshotId: undefined as string | undefined,
 } as const;
 
 export const RATE_LIMITS = {

@@ -10,14 +10,29 @@ export interface SandboxInstance {
 /**
  * Create a sandbox for building a vulnerable web app.
  * Starts with allow-all network so the AI can install packages.
+ * When a snapshotId is provided, the sandbox starts from a pre-built image
+ * (e.g., with Express pre-installed) to save build time.
  */
-export async function createBuilderSandbox(): Promise<SandboxInstance> {
-  const sandbox = await Sandbox.create({
-    runtime: SANDBOX_CONFIG.template,
-    ports: [SANDBOX_CONFIG.port],
-    timeout: SANDBOX_CONFIG.timeoutMs,
-    networkPolicy: "allow-all",
-  });
+export async function createBuilderSandbox(
+  snapshotId?: string
+): Promise<SandboxInstance> {
+  const effectiveSnapshot = snapshotId ?? SANDBOX_CONFIG.snapshotId;
+
+  const sandbox = await Sandbox.create(
+    effectiveSnapshot
+      ? {
+          source: { type: "snapshot", snapshotId: effectiveSnapshot },
+          ports: [SANDBOX_CONFIG.port],
+          timeout: SANDBOX_CONFIG.timeoutMs,
+          networkPolicy: "allow-all",
+        }
+      : {
+          runtime: SANDBOX_CONFIG.template,
+          ports: [SANDBOX_CONFIG.port],
+          timeout: SANDBOX_CONFIG.timeoutMs,
+          networkPolicy: "allow-all",
+        }
+  );
 
   const appUrl = sandbox.domain(SANDBOX_CONFIG.port);
 

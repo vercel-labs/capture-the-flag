@@ -6,6 +6,47 @@ import { redisKeys } from "@/lib/redis/keys";
 import { getSandbox, stopSandbox } from "@/lib/sandbox/manager";
 import { getMatchTimeline, emitMatchEvent } from "@/lib/events/emitter";
 
+/**
+ * Mark a match as failed and clean up all sandbox resources.
+ * Called when the workflow encounters an unrecoverable error.
+ */
+export async function failMatch(matchId: string): Promise<void> {
+  "use step";
+
+  // Stop all player sandboxes
+  const matchPlayers = await db
+    .select()
+    .from(players)
+    .where(eq(players.matchId, matchId));
+
+  await Promise.all(
+    matchPlayers
+      .filter((p) => p.sandboxId)
+      .map(async (p) => {
+        try {
+          const sandbox = await getSandbox(p.sandboxId!);
+          await stopSandbox(sandbox);
+        } catch {
+          // Sandbox may already be stopped
+        }
+      })
+  );
+
+  // Mark match as failed
+  await db
+    .update(matches)
+    .set({ status: "failed", completedAt: new Date() })
+    .where(eq(matches.id, matchId));
+
+  await redis.set(redisKeys.matchStatus(matchId), "failed");
+  await redis.srem(redisKeys.activeMatches, matchId);
+
+  await emitMatchEvent(matchId, {
+    eventType: "match_failed",
+    payload: { failedAt: new Date().toISOString() },
+  });
+}
+
 export async function cleanupMatch(matchId: string): Promise<void> {
   "use step";
 
