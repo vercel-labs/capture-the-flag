@@ -11,6 +11,10 @@ import { players, leaderboardStats } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { redis } from "@/lib/redis/client";
 import { redisKeys } from "@/lib/redis/keys";
+import {
+  cleanupStaleMatch,
+  resolveMatchIdFromPrefix,
+} from "@/lib/match/cleanup-stale";
 
 let _bot: Chat | null = null;
 
@@ -58,8 +62,14 @@ function registerHandlers(instance: Chat) {
       return;
     }
 
+    if (args.startsWith("cleanup ")) {
+      const matchIdPrefix = args.replace("cleanup ", "").trim();
+      await handleCleanup(event, matchIdPrefix);
+      return;
+    }
+
     await event.channel.post(
-      "Usage: `/ctf start` | `/ctf start --quick` | `/ctf status` | `/ctf leaderboard` | `/ctf stop {matchId}`"
+      "Usage: `/ctf start` | `/ctf start --quick` | `/ctf status` | `/ctf leaderboard` | `/ctf stop {matchId}` | `/ctf cleanup {matchId}`"
     );
   });
 
@@ -213,4 +223,32 @@ async function handleStop(event: SlashCommandEvent, matchId: string) {
   );
 
   await resumeHook(`ctf-stop:${matchId}`, { reason: "Manually stopped via Slack" });
+}
+
+async function handleCleanup(event: SlashCommandEvent, matchIdPrefix: string) {
+  const fullMatchId = await resolveMatchIdFromPrefix(matchIdPrefix);
+
+  if (!fullMatchId) {
+    await event.channel.post(
+      `No match found with prefix \`${matchIdPrefix}\`.`
+    );
+    return;
+  }
+
+  await event.channel.post(
+    `Cleaning up stale match \`${fullMatchId.slice(0, 8)}\`...`
+  );
+
+  try {
+    await cleanupStaleMatch(fullMatchId);
+    await event.channel.post(
+      `Match \`${fullMatchId.slice(0, 8)}\` cleaned up successfully. Status set to failed.`
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error";
+    await event.channel.post(
+      `Failed to clean up match \`${fullMatchId.slice(0, 8)}\`: ${message}`
+    );
+  }
 }

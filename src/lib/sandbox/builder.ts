@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { getModel } from "@/lib/ai/gateway";
 import { createSandboxTools } from "@/lib/ai/tools/sandbox-tools";
 import { createFlagTools } from "@/lib/ai/tools/flag-tools";
@@ -118,6 +118,7 @@ export async function buildApp(
       maxOutputTokens: 16384,
       temperature: 0.7,
       maxRetries: 2,
+      stopWhen: stepCountIs(20),
       timeout: { totalMs: config.buildTimeLimitSeconds * 1000 },
     });
 

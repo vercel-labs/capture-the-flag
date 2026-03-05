@@ -15,6 +15,7 @@ vi.mock("ai", async (importOriginal) => {
   return {
     ...actual,
     generateText: vi.fn(),
+    stepCountIs: vi.fn().mockReturnValue({ type: "step-count", stepCount: 20 }),
   };
 });
 
@@ -49,7 +50,7 @@ vi.mock("@/lib/redis/keys", () => ({
 
 import { buildApp } from "@/lib/sandbox/builder";
 import { createBuilderSandbox } from "@/lib/sandbox/manager";
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 
 describe("buildApp sandbox cleanup", () => {
   const mockSandbox = {
@@ -118,5 +119,23 @@ describe("buildApp sandbox cleanup", () => {
 
     expect(result.success).toBe(true);
     expect(mockSandbox.stop).not.toHaveBeenCalled();
+  });
+
+  it("passes stopWhen: stepCountIs(20) to generateText", async () => {
+    vi.mocked(generateText).mockResolvedValue({} as never);
+
+    await buildApp("match-1", "player-1", "test/model", {
+      appSpec: "test app",
+      vulnerabilityCount: 1,
+      models: ["test/model", "test/model2"],
+      buildTimeLimitSeconds: 60,
+      attackTimeLimitSeconds: 60,
+    });
+
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stopWhen: stepCountIs(20),
+      })
+    );
   });
 });
