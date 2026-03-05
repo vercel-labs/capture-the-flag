@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { MatchScoreboard } from "@/components/match-scoreboard";
 import { MatchTimeline } from "@/components/match-timeline";
 import { FlagLog } from "@/components/flag-log";
+import { SandboxArena } from "@/components/sandbox-arena";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,32 @@ export default async function MatchDetailPage({
             )}
           </div>
         )}
+      </div>
+
+      <div className="mb-6">
+        <SandboxArena
+          matchId={matchId}
+          matchStatus={match.status}
+          winnerId={match.winnerId}
+          initialPlayers={matchPlayers.map((p) => ({
+            id: p.id,
+            modelId: p.modelId,
+            buildStatus: p.buildStatus ?? "pending",
+            attackStatus: p.attackStatus ?? "pending",
+            appUrl: p.appUrl,
+            score: p.score ?? 0,
+            totalFlagsCaptured: p.totalFlagsCaptured ?? 0,
+            totalFlagsLost: p.totalFlagsLost ?? 0,
+          }))}
+          initialCaptures={captures.map((c) => ({
+            id: c.id,
+            attackerPlayerId: c.attackerPlayerId,
+            defenderPlayerId: c.defenderPlayerId,
+            isValid: c.isValid,
+            pointsAwarded: c.pointsAwarded,
+            capturedAt: c.capturedAt?.toISOString() ?? null,
+          }))}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
