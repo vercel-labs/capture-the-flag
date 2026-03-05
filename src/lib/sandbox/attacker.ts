@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { getModel } from "@/lib/ai/gateway";
 import { createSandboxTools } from "@/lib/ai/tools/sandbox-tools";
 import { createHttpTools } from "@/lib/ai/tools/http-tools";
@@ -42,7 +42,38 @@ export async function attackApp(
 
   try {
     const sandboxTools = createSandboxTools(sandbox);
-    const httpTools = createHttpTools();
+    const rawHttpTools = createHttpTools();
+    const rawHttpExecute = rawHttpTools.httpRequest.execute!;
+
+    let httpRequestCount = 0;
+    const httpTools = {
+      httpRequest: {
+        ...rawHttpTools.httpRequest,
+        execute: async (...args: Parameters<typeof rawHttpExecute>) => {
+          const result = await rawHttpExecute(...args);
+          httpRequestCount++;
+
+          // Emit progress on first request and every 5th request
+          if (httpRequestCount === 1 || httpRequestCount % 5 === 0) {
+            const input = args[0];
+            const status = typeof result === "object" && "status" in result ? result.status : undefined;
+            await emitMatchEvent(matchId, {
+              eventType: "attack_progress",
+              playerId: attackerPlayerId,
+              payload: {
+                action: "http_request",
+                method: input.method ?? "GET",
+                url: input.url,
+                ...(status !== undefined && { status }),
+                requestNumber: httpRequestCount,
+              },
+            });
+          }
+
+          return result;
+        },
+      },
+    };
     const flagTools = createFlagTools({
       onSubmitFlag: async (flag, method) => {
         const result = await validateFlag({
@@ -89,6 +120,16 @@ export async function attackApp(
               },
             });
           }
+        } else {
+          await emitMatchEvent(matchId, {
+            eventType: "attack_progress",
+            playerId: attackerPlayerId,
+            payload: {
+              action: "flag_attempt",
+              error: result.error,
+              method,
+            },
+          });
         }
 
         return {
@@ -121,6 +162,7 @@ export async function attackApp(
       maxOutputTokens: 16384,
       temperature: 0.3,
       maxRetries: 2,
+      stopWhen: stepCountIs(30),
       timeout: { totalMs: config.attackTimeLimitSeconds * 1000 },
     });
 

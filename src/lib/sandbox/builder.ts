@@ -10,6 +10,7 @@ import { vulnerabilities } from "@/lib/db/schema";
 import { redis } from "@/lib/redis/client";
 import { redisKeys } from "@/lib/redis/keys";
 import { REDIS_TTL } from "@/lib/config/defaults";
+import { emitMatchEvent } from "@/lib/events/emitter";
 import type { VulnerabilityCategory } from "@/lib/config/types";
 import type { MatchConfig } from "@/lib/config/types";
 
@@ -84,18 +85,29 @@ export async function buildApp(
 
         vulnerabilityIds.push(inserted.id);
 
-        // Store flag in Redis for fast validation
+        // Store flag in Redis for fast validation (Upstash auto-serializes)
         await redis.hset(redisKeys.matchFlags(matchId), {
-          [vuln.flagToken]: JSON.stringify({
+          [vuln.flagToken]: {
             vulnerabilityId: inserted.id,
             playerId,
             pointValue: 100,
-          }),
+          },
         });
         await redis.expire(
           redisKeys.matchFlags(matchId),
           REDIS_TTL.matchKeysSeconds
         );
+
+        // Emit vulnerability registration event (without flag token)
+        await emitMatchEvent(matchId, {
+          eventType: "vulnerability_registered",
+          playerId,
+          payload: {
+            category: vuln.category,
+            location: vuln.location,
+            difficulty: vuln.difficulty,
+          },
+        });
 
         return { success: true, vulnerabilityId: inserted.id };
       },

@@ -2,6 +2,9 @@ import { redis } from "@/lib/redis/client";
 import { redisKeys } from "@/lib/redis/keys";
 import { RATE_LIMITS, REDIS_TTL, SCORING } from "@/lib/config/defaults";
 import { isValidFlagFormat } from "./generator";
+import { db } from "@/lib/db/client";
+import { vulnerabilities } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import type { FlagSubmission, FlagValidationResult } from "./types";
 
 interface StoredFlagData {
@@ -90,6 +93,12 @@ export async function validateFlag(
       error: "Flag already captured",
     };
   }
+
+  // Mark vulnerability as captured in the database
+  await db
+    .update(vulnerabilities)
+    .set({ capturedByPlayerId: attackerPlayerId })
+    .where(eq(vulnerabilities.id, flagData.vulnerabilityId));
 
   // Check if this is first blood
   const firstCaptureKey = redisKeys.matchFirstCapture(matchId);
