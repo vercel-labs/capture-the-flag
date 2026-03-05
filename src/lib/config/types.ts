@@ -13,7 +13,6 @@ export const matchConfigSchema = z.object({
     .default([
       "anthropic/claude-sonnet-4",
       "openai/gpt-4.1",
-      "xai/grok-3",
     ]),
   buildTimeLimitSeconds: z.number().int().min(60).max(1800).default(600),
   attackTimeLimitSeconds: z.number().int().min(60).max(3600).default(600),

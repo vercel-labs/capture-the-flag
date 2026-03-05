@@ -7,7 +7,6 @@ export const DEFAULT_MATCH_CONFIG: MatchConfig = {
   models: [
     "anthropic/claude-sonnet-4",
     "openai/gpt-4.1",
-    "xai/grok-3",
   ],
   buildTimeLimitSeconds: 600,
   attackTimeLimitSeconds: 600,

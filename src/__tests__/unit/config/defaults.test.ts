@@ -13,7 +13,7 @@ describe("DEFAULT_MATCH_CONFIG", () => {
       "An Express.js web application with user authentication and a simple data API"
     );
     expect(DEFAULT_MATCH_CONFIG.vulnerabilityCount).toBe(5);
-    expect(DEFAULT_MATCH_CONFIG.models).toHaveLength(3);
+    expect(DEFAULT_MATCH_CONFIG.models).toHaveLength(2);
     expect(DEFAULT_MATCH_CONFIG.buildTimeLimitSeconds).toBe(600);
     expect(DEFAULT_MATCH_CONFIG.attackTimeLimitSeconds).toBe(600);
   });
@@ -30,7 +30,7 @@ describe("matchConfigSchema", () => {
       "An Express.js web application with user authentication and a simple data API"
     );
     expect(result.vulnerabilityCount).toBe(5);
-    expect(result.models).toHaveLength(3);
+    expect(result.models).toHaveLength(2);
   });
 
   it("rejects vulnerability count below 1", () => {
