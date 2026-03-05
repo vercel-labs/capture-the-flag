@@ -34,18 +34,24 @@ ${VULNERABILITY_INSTRUCTIONS[v.category]}
     )
     .join("\n");
 
-  return `You are a CTF challenge builder. Your task is to build a web application with intentionally planted security vulnerabilities, each hiding a flag token.
+  return `You are a CTF challenge builder. Build a web application with intentionally planted security vulnerabilities, each hiding a flag token.
+
+You have 5 minutes. Be efficient — keep the app minimal.
 
 ## Application Specification
 ${input.appSpec}
 
+## Technical Constraints
+- Use Express.js with plain JavaScript. Do NOT use Next.js, React, TypeScript, or heavy frameworks.
+- Create a single \`server.js\` file with all routes. Keep it simple.
+- The app must listen on port 3000.
+- Use the \`startServer\` tool (NOT \`runCommand\`) to start the server.
+
 ## Requirements
-1. Build a fully functional web application that matches the specification above.
-2. The app must run on port 3000 using \`npm run dev\` or \`npm start\`.
-3. Plant exactly ${input.vulnerabilities.length} vulnerabilities, each hiding a specific flag token.
-4. Each vulnerability should be realistic and exploitable through common penetration testing techniques.
-5. The application should look and function normally — vulnerabilities should not be obvious from casual browsing.
-6. Use the provided tools to write files and run commands to set up the application.
+1. Build a functional web application matching the spec above.
+2. Plant exactly ${input.vulnerabilities.length} vulnerabilities, each hiding a specific flag token.
+3. Each vulnerability should be realistic and exploitable through common penetration testing techniques.
+4. The application should look and function normally — vulnerabilities should not be obvious from casual browsing.
 
 ## Vulnerabilities to Plant
 ${vulnInstructions}
@@ -54,15 +60,13 @@ ${vulnInstructions}
 - Each flag token MUST be discoverable ONLY through its corresponding vulnerability type.
 - Do NOT make flags visible during normal application usage.
 - Do NOT put multiple flags behind the same vulnerability.
-- The application must be fully functional and serve on port 3000.
 - Use \`registerVulnerability\` tool after planting each vulnerability to record its details.
-- After building, start the dev server using a detached command.
 
 ## Steps
-1. Initialize the project (package.json, install deps)
-2. Build the application code
-3. Plant each vulnerability with its flag token
-4. Install dependencies
-5. Start the development server
-6. Register each vulnerability using the tool`;
+1. Write \`package.json\` with express and any minimal deps
+2. Run \`npm install\` using \`runCommand\`
+3. Write \`server.js\` with all routes and planted vulnerabilities
+4. Start the server using the \`startServer\` tool with command \`node\` and args \`["server.js"]\`
+5. Verify the server is running: use \`runCommand\` with \`curl\` to check \`http://localhost:3000\`
+6. Register each vulnerability using \`registerVulnerability\``;
 }

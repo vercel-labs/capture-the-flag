@@ -36,7 +36,9 @@ export function createSandboxTools(sandbox: Sandbox) {
 
     runCommand: tool({
       description:
-        "Run a shell command in the sandbox. Returns stdout and stderr.",
+        "Run a shell command in the sandbox and wait for it to complete. " +
+        "Returns stdout and stderr. Do NOT use this for long-running processes " +
+        "like servers — use startServer instead.",
       inputSchema: z.object({
         command: z.string().describe("The command to run (e.g., 'npm')"),
         args: z
@@ -60,6 +62,38 @@ export function createSandboxTools(sandbox: Sandbox) {
           exitCode: result.exitCode,
           stdout,
           stderr,
+        };
+      },
+    }),
+
+    startServer: tool({
+      description:
+        "Start a long-running server process in the background (detached). " +
+        "Use this to start your web server (e.g., 'node server.js'). " +
+        "Returns immediately without waiting for the process to exit.",
+      inputSchema: z.object({
+        command: z.string().describe("The command to run (e.g., 'node')"),
+        args: z
+          .array(z.string())
+          .default([])
+          .describe("Command arguments (e.g., ['server.js'])"),
+        cwd: z
+          .string()
+          .optional()
+          .describe("Working directory"),
+      }),
+      execute: async ({ command, args, cwd }) => {
+        await sandbox.runCommand({
+          cmd: command,
+          args,
+          cwd,
+          detached: true,
+        });
+        // Brief wait for the server to start
+        await new Promise((r) => setTimeout(r, 2000));
+        return {
+          started: true,
+          message: "Server process started in background.",
         };
       },
     }),

@@ -131,6 +131,11 @@ export async function buildApp(
       success: true,
     };
   } catch (error) {
+    try {
+      await sandbox.stop({ blocking: false });
+    } catch {
+      // Sandbox may already be stopped
+    }
     return {
       sandboxId,
       appUrl,

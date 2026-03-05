@@ -9,8 +9,10 @@ describe("DEFAULT_MATCH_CONFIG", () => {
   });
 
   it("has correct default values", () => {
-    expect(DEFAULT_MATCH_CONFIG.appSpec).toBe("A Next.js ecommerce site");
-    expect(DEFAULT_MATCH_CONFIG.vulnerabilityCount).toBe(10);
+    expect(DEFAULT_MATCH_CONFIG.appSpec).toBe(
+      "An Express.js web application with user authentication and a simple data API"
+    );
+    expect(DEFAULT_MATCH_CONFIG.vulnerabilityCount).toBe(5);
     expect(DEFAULT_MATCH_CONFIG.models).toHaveLength(3);
     expect(DEFAULT_MATCH_CONFIG.buildTimeLimitSeconds).toBe(600);
     expect(DEFAULT_MATCH_CONFIG.attackTimeLimitSeconds).toBe(600);
@@ -24,8 +26,10 @@ describe("DEFAULT_MATCH_CONFIG", () => {
 describe("matchConfigSchema", () => {
   it("applies defaults for missing fields", () => {
     const result = matchConfigSchema.parse({});
-    expect(result.appSpec).toBe("A Next.js ecommerce site");
-    expect(result.vulnerabilityCount).toBe(10);
+    expect(result.appSpec).toBe(
+      "An Express.js web application with user authentication and a simple data API"
+    );
+    expect(result.vulnerabilityCount).toBe(5);
     expect(result.models).toHaveLength(3);
   });
 
