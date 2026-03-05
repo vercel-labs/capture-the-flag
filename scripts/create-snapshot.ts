@@ -40,16 +40,13 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("Taking snapshot...");
-  const snapshotId = await sandbox.snapshot();
+  console.log("Taking snapshot (this stops the sandbox automatically)...");
+  const snapshot = await sandbox.snapshot();
   console.log(`\nSnapshot created successfully!`);
-  console.log(`Snapshot ID: ${snapshotId}`);
+  console.log(`Snapshot ID: ${snapshot.snapshotId}`);
   console.log(
     `\nUpdate SANDBOX_CONFIG.snapshotId in src/lib/config/defaults.ts with this value.`
   );
-
-  console.log("Stopping sandbox...");
-  await sandbox.stop({ blocking: true });
   console.log("Done.");
 }
 

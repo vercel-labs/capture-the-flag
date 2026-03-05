@@ -25,7 +25,7 @@ export const SANDBOX_CONFIG = {
   timeoutMs: 10 * 60 * 1000,
   healthCheckRetries: 5,
   healthCheckBackoffMs: 2000,
-  snapshotId: undefined as string | undefined,
+  snapshotId: "snap_7K1NAsV1Gmo7sNcLAPMp2TxTqK6g" as string | undefined,
 } as const;
 
 export const RATE_LIMITS = {
