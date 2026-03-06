@@ -184,11 +184,12 @@ export function applyEvent(state: ArenaState, event: ArenaEvent): ArenaState {
     case "scoring_completed": {
       const scores = (event.payload?.scores ?? []) as Array<{
         playerId: string;
-        score: number;
+        score?: number;
+        totalScore?: number;
       }>;
       for (const s of scores) {
         const p = players.get(s.playerId);
-        if (p) p.score = s.score;
+        if (p) p.score = s.score ?? s.totalScore ?? 0;
       }
       break;
     }

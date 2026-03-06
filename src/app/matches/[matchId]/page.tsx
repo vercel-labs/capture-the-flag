@@ -1,11 +1,21 @@
 import { db } from "@/lib/db/client";
-import { matches, players, flagCaptures, matchEvents } from "@/lib/db/schema";
+import {
+  matches,
+  players,
+  flagCaptures,
+  matchEvents,
+  vulnerabilities,
+} from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { MatchScoreboard } from "@/components/match-scoreboard";
 import { MatchTimeline } from "@/components/match-timeline";
 import { FlagLog } from "@/components/flag-log";
 import { SandboxArena } from "@/components/sandbox-arena";
+import {
+  VulnerabilityReport,
+  type VulnerabilityReportEntry,
+} from "@/components/vulnerability-report";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +60,27 @@ export default async function MatchDetailPage({
     .select()
     .from(matchEvents)
     .where(eq(matchEvents.matchId, matchId));
+
+  const matchVulns = await db
+    .select()
+    .from(vulnerabilities)
+    .where(eq(vulnerabilities.matchId, matchId));
+
+  // Build a player ID → model ID lookup for the report
+  const playerModelMap = new Map(matchPlayers.map((p) => [p.id, p.modelId]));
+
+  const vulnReportEntries: VulnerabilityReportEntry[] = matchVulns.map((v) => ({
+    category: v.category,
+    description: v.description,
+    location: v.location,
+    difficulty: v.difficulty,
+    pointValue: v.pointValue,
+    captured: v.capturedByPlayerId !== null,
+    capturedByModelId: v.capturedByPlayerId
+      ? (playerModelMap.get(v.capturedByPlayerId) ?? null)
+      : null,
+    defenderModelId: playerModelMap.get(v.playerId) ?? v.playerId,
+  }));
 
   const config = match.config as {
     appSpec?: string;
@@ -154,6 +185,12 @@ export default async function MatchDetailPage({
           />
         </div>
       </div>
+
+      {match.status === "completed" && vulnReportEntries.length > 0 && (
+        <div className="mt-6">
+          <VulnerabilityReport entries={vulnReportEntries} />
+        </div>
+      )}
     </div>
   );
 }

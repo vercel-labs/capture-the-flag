@@ -7,7 +7,8 @@ import { attackAppPrompt } from "@/lib/ai/prompts/attack-app";
 import { validateFlag } from "@/lib/flags/validator";
 import { createAttackerSandbox } from "./manager";
 import { db } from "@/lib/db/client";
-import { flagCaptures } from "@/lib/db/schema";
+import { flagCaptures, vulnerabilities } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { emitMatchEvent } from "@/lib/events/emitter";
 import type { MatchConfig } from "@/lib/config/types";
 
@@ -98,6 +99,23 @@ export async function attackApp(
         if (result.isValid) {
           flagsCaptured++;
 
+          // Look up vulnerability details for the captured flag
+          let vulnerabilityCategory: string | undefined;
+          let vulnerabilityDescription: string | undefined;
+          if (result.vulnerabilityId) {
+            const [vuln] = await db
+              .select({
+                category: vulnerabilities.category,
+                description: vulnerabilities.description,
+              })
+              .from(vulnerabilities)
+              .where(eq(vulnerabilities.id, result.vulnerabilityId));
+            if (vuln) {
+              vulnerabilityCategory = vuln.category;
+              vulnerabilityDescription = vuln.description;
+            }
+          }
+
           // Emit events
           await emitMatchEvent(matchId, {
             eventType: "flag_captured",
@@ -107,6 +125,8 @@ export async function attackApp(
               defenderModelId: target.modelId,
               pointsAwarded: result.pointsAwarded,
               method,
+              ...(vulnerabilityCategory && { vulnerabilityCategory }),
+              ...(vulnerabilityDescription && { vulnerabilityDescription }),
             },
           });
 

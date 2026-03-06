@@ -326,6 +326,22 @@ describe("applyEvent", () => {
     expect(next.players.get("p2")!.score).toBe(300);
   });
 
+  it("scoring_completed supports totalScore key as alias", () => {
+    const state = twoPlayerState();
+    const next = applyEvent(state, {
+      eventType: "scoring_completed",
+      payload: {
+        scores: [
+          { playerId: "p1", totalScore: 550 },
+          { playerId: "p2", totalScore: 200 },
+        ],
+      },
+    });
+
+    expect(next.players.get("p1")!.score).toBe(550);
+    expect(next.players.get("p2")!.score).toBe(200);
+  });
+
   it("match_completed sets matchPhase to completed", () => {
     const state = twoPlayerState();
     const next = applyEvent(state, { eventType: "match_completed" });
