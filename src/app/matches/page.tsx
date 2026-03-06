@@ -1,7 +1,7 @@
 import { db } from "@/lib/db/client";
 import { matches, players } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
-import { MatchCard } from "@/components/match-card";
+import { MatchesList } from "@/components/matches-list";
 
 export const dynamic = "force-dynamic";
 
@@ -40,21 +40,7 @@ export default async function MatchesPage() {
         </p>
       </div>
 
-      {matchesWithPlayers.length === 0 ? (
-        <div className="text-center text-muted py-16">
-          <p className="text-lg">No matches yet.</p>
-          <p className="text-sm mt-2">
-            Start a match via Slack with{" "}
-            <code className="font-mono text-accent">/ctf start</code>
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {matchesWithPlayers.map((match) => (
-            <MatchCard key={match.id} match={match} />
-          ))}
-        </div>
-      )}
+      <MatchesList initialMatches={matchesWithPlayers} />
     </div>
   );
 }

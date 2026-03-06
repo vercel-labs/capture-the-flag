@@ -55,6 +55,11 @@ export async function failMatch(matchId: string): Promise<void> {
         })
     );
 
+    // Mark all player sandboxes as shutdown
+    for (const p of matchPlayers) {
+      await db.update(players).set({ buildStatus: "shutdown" }).where(eq(players.id, p.id));
+    }
+
     // Copy Redis timeline to DB before marking failed
     await copyTimelineToDb(matchId);
 
@@ -131,6 +136,11 @@ export async function cleanupMatch(matchId: string): Promise<void> {
       });
 
     await Promise.all(stopTasks);
+
+    // Mark all player sandboxes as shutdown
+    for (const p of matchPlayers) {
+      await db.update(players).set({ buildStatus: "shutdown" }).where(eq(players.id, p.id));
+    }
 
     // Copy Redis timeline to match_events table (preserving timestamps)
     await copyTimelineToDb(matchId);

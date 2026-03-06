@@ -11,6 +11,7 @@ const STATUS_STYLES: Record<string, { color: string; dot: string }> = {
   deploying: { color: "text-warning", dot: "bg-warning animate-pulse" },
   live: { color: "text-accent", dot: "bg-accent animate-pulse" },
   attacking: { color: "text-danger", dot: "bg-danger animate-pulse" },
+  shutdown: { color: "text-muted", dot: "bg-muted" },
 };
 
 export function SandboxStatus({ status, label }: SandboxStatusProps) {

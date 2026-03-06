@@ -199,10 +199,16 @@ export function applyEvent(state: ArenaState, event: ArenaEvent): ArenaState {
     }
     case "match_completed": {
       matchPhase = "completed";
+      for (const p of players.values()) {
+        if (p.buildStatus === "live") p.buildStatus = "shutdown";
+      }
       break;
     }
     case "match_failed": {
       matchPhase = "failed";
+      for (const p of players.values()) {
+        if (p.buildStatus === "live") p.buildStatus = "shutdown";
+      }
       break;
     }
   }
@@ -257,6 +263,16 @@ export function computePlayerStats(
   }
 
   return { totalCaptured, totalLost, capturedByOpponent };
+}
+
+export function computeSummary(players: Map<string, ArenaPlayer>) {
+  const buildCounts: Record<string, number> = {};
+  const attackCounts: Record<string, number> = {};
+  for (const p of players.values()) {
+    buildCounts[p.buildStatus] = (buildCounts[p.buildStatus] || 0) + 1;
+    attackCounts[p.attackStatus] = (attackCounts[p.attackStatus] || 0) + 1;
+  }
+  return { buildCounts, attackCounts };
 }
 
 // --- Component ---
@@ -315,6 +331,7 @@ export function SandboxArena({
   }, [matchId]);
 
   const playerCount = state.players.size;
+  const { buildCounts, attackCounts } = computeSummary(state.players);
 
   const sorted = [...state.players.values()].sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
@@ -334,12 +351,18 @@ export function SandboxArena({
   return (
     <div className="border border-card-border rounded-lg bg-card overflow-hidden">
       <div className="px-4 py-3 border-b border-card-border flex items-center justify-between">
-        <h3 className="font-mono text-sm font-medium">
-          Sandbox Arena
-          <span className="text-muted ml-2 font-normal">
-            {playerCount} players
-          </span>
-        </h3>
+        <div className="flex flex-col gap-1">
+          <h3 className="font-mono text-sm font-medium">
+            Sandbox Arena
+            <span className="text-muted ml-2 font-normal">
+              {playerCount} players
+            </span>
+          </h3>
+          <div className="flex gap-3 text-[10px] font-mono text-muted">
+            <span>Apps: {Object.entries(buildCounts).map(([s, n]) => `${n} ${s}`).join(", ")}</span>
+            <span>Attackers: {Object.entries(attackCounts).map(([s, n]) => `${n} ${s}`).join(", ")}</span>
+          </div>
+        </div>
         <span className="text-xs text-muted font-mono">
           {PHASE_LABELS[state.matchPhase] || state.matchPhase}
         </span>
@@ -421,7 +444,7 @@ function PlayerCard({
             ID: {player.sandboxId}
           </div>
         )}
-        {player.appUrl && (
+        {player.appUrl && player.buildStatus !== "shutdown" && (
           <a
             href={player.appUrl}
             target="_blank"
@@ -431,6 +454,9 @@ function PlayerCard({
           >
             {player.appUrl}
           </a>
+        )}
+        {player.appUrl && player.buildStatus === "shutdown" && (
+          <span className="text-[10px] text-muted truncate block line-through">{player.appUrl}</span>
         )}
       </div>
 

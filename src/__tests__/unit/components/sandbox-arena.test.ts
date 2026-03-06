@@ -4,6 +4,7 @@ import {
   applyEvent,
   computeCaptureStats,
   computePlayerStats,
+  computeSummary,
   type ArenaPlayer,
   type ArenaCapture,
   type ArenaState,
@@ -127,6 +128,17 @@ describe("initArenaState", () => {
     expect(state.players.size).toBe(0);
     expect(state.firstBloodPlayerId).toBeNull();
     expect(state.matchPhase).toBe("building");
+  });
+
+  it("preserves attackStatus from DB", () => {
+    const players = [
+      makePlayer({ id: "p1", attackStatus: "attacking" }),
+      makePlayer({ id: "p2", modelId: "openai/gpt-4.1", attackStatus: "attacking" }),
+    ];
+    const state = initArenaState(players, [], "attacking");
+
+    expect(state.players.get("p1")!.attackStatus).toBe("attacking");
+    expect(state.players.get("p2")!.attackStatus).toBe("attacking");
   });
 
   it("uses match status as initial phase", () => {
@@ -407,10 +419,43 @@ describe("applyEvent", () => {
     expect(next.matchPhase).toBe("completed");
   });
 
+  it("match_completed sets live players buildStatus to shutdown", () => {
+    const state = twoPlayerState();
+    state.players.get("p1")!.buildStatus = "live";
+    state.players.get("p2")!.buildStatus = "live";
+
+    const next = applyEvent(state, { eventType: "match_completed" });
+
+    expect(next.players.get("p1")!.buildStatus).toBe("shutdown");
+    expect(next.players.get("p2")!.buildStatus).toBe("shutdown");
+  });
+
+  it("match_completed does not change failed buildStatus", () => {
+    const state = twoPlayerState();
+    state.players.get("p1")!.buildStatus = "live";
+    state.players.get("p2")!.buildStatus = "failed";
+
+    const next = applyEvent(state, { eventType: "match_completed" });
+
+    expect(next.players.get("p1")!.buildStatus).toBe("shutdown");
+    expect(next.players.get("p2")!.buildStatus).toBe("failed");
+  });
+
   it("match_failed sets matchPhase to failed", () => {
     const state = twoPlayerState();
     const next = applyEvent(state, { eventType: "match_failed" });
     expect(next.matchPhase).toBe("failed");
+  });
+
+  it("match_failed sets live players buildStatus to shutdown", () => {
+    const state = twoPlayerState();
+    state.players.get("p1")!.buildStatus = "live";
+    state.players.get("p2")!.buildStatus = "live";
+
+    const next = applyEvent(state, { eventType: "match_failed" });
+
+    expect(next.players.get("p1")!.buildStatus).toBe("shutdown");
+    expect(next.players.get("p2")!.buildStatus).toBe("shutdown");
   });
 
   it("does not mutate original state", () => {
@@ -572,5 +617,30 @@ describe("computePlayerStats", () => {
     expect(stats.capturedByOpponent.get("p3")).toBe(1);
     expect(stats.capturedByOpponent.get("p4")).toBe(1);
     expect(stats.capturedByOpponent.get("p5")).toBe(1);
+  });
+});
+
+// --- computeSummary ---
+
+describe("computeSummary", () => {
+  it("counts build and attack statuses correctly", () => {
+    const players = new Map<string, ArenaPlayer>([
+      ["p1", makePlayer({ id: "p1", buildStatus: "live", attackStatus: "attacking" })],
+      ["p2", makePlayer({ id: "p2", buildStatus: "live", attackStatus: "attacking" })],
+      ["p3", makePlayer({ id: "p3", buildStatus: "failed", attackStatus: "pending" })],
+    ]);
+
+    const { buildCounts, attackCounts } = computeSummary(players);
+
+    expect(buildCounts).toEqual({ live: 2, failed: 1 });
+    expect(attackCounts).toEqual({ attacking: 2, pending: 1 });
+  });
+
+  it("returns empty objects for no players", () => {
+    const players = new Map<string, ArenaPlayer>();
+    const { buildCounts, attackCounts } = computeSummary(players);
+
+    expect(buildCounts).toEqual({});
+    expect(attackCounts).toEqual({});
   });
 });
