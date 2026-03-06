@@ -7,90 +7,142 @@ import { attackApp } from "@/lib/sandbox/attacker";
 import { emitMatchEvent } from "@/lib/events/emitter";
 import type { MatchConfig } from "@/lib/config/types";
 
-interface AttackInput {
+interface AttackPlayerInput {
   matchId: string;
-  config: MatchConfig;
-  playerApps: Array<{
+  attacker: {
+    playerId: string;
+    modelId: string;
+  };
+  target: {
     playerId: string;
     modelId: string;
     appUrl: string;
-  }>;
+  };
+  config: MatchConfig;
 }
 
-interface AttackResult {
-  results: Array<{
-    attackerPlayerId: string;
-    attackerModelId: string;
-    targetModelId: string;
-    flagsCaptured: number;
-    success: boolean;
-    error?: string;
-  }>;
+export interface AttackPairResult {
+  attackerPlayerId: string;
+  attackerModelId: string;
+  targetPlayerId: string;
+  targetModelId: string;
+  flagsCaptured: number;
+  success: boolean;
+  error?: string;
 }
 
-export async function runAttackPhase(input: AttackInput): Promise<AttackResult> {
+/**
+ * Run a single attacker→target attack as its own workflow step.
+ */
+export async function attackPlayerApp(
+  input: AttackPlayerInput
+): Promise<AttackPairResult> {
   "use step";
 
-  const { matchId, config, playerApps } = input;
+  try {
+    const { matchId, attacker, target, config } = input;
 
-  await db
-    .update(matches)
-    .set({ status: "attacking", attackStartedAt: new Date() })
-    .where(eq(matches.id, matchId));
-  await redis.set(redisKeys.matchStatus(matchId), "attacking");
+    const result = await attackApp(
+      matchId,
+      attacker.playerId,
+      attacker.modelId,
+      {
+        playerId: target.playerId,
+        modelId: target.modelId,
+        appUrl: target.appUrl,
+      },
+      config
+    );
 
-  await emitMatchEvent(matchId, {
-    eventType: "attack_started",
-    payload: { playerCount: playerApps.length },
-  });
-
-  // Each player attacks all other players' apps concurrently
-  const attackTasks: Promise<{
-    attackerPlayerId: string;
-    attackerModelId: string;
-    targetModelId: string;
-    flagsCaptured: number;
-    success: boolean;
-    error?: string;
-  }>[] = [];
-
-  for (const attacker of playerApps) {
-    for (const target of playerApps) {
-      if (attacker.playerId === target.playerId) continue;
-
-      attackTasks.push(
-        attackApp(matchId, attacker.playerId, attacker.modelId, {
-          playerId: target.playerId,
-          modelId: target.modelId,
-          appUrl: target.appUrl,
-        }, config).then((result) => ({
-          attackerPlayerId: attacker.playerId,
-          attackerModelId: attacker.modelId,
-          targetModelId: target.modelId,
-          flagsCaptured: result.flagsCaptured,
-          success: result.success,
-          error: result.error,
-        }))
-      );
-    }
+    return {
+      attackerPlayerId: attacker.playerId,
+      attackerModelId: attacker.modelId,
+      targetPlayerId: target.playerId,
+      targetModelId: target.modelId,
+      flagsCaptured: result.flagsCaptured,
+      success: result.success,
+      error: result.error,
+    };
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "attackPlayerApp",
+      matchId: input.matchId,
+      attackerPlayerId: input.attacker.playerId,
+      targetPlayerId: input.target.playerId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
   }
+}
 
-  const results = await Promise.all(attackTasks);
+/**
+ * Mark the match as "attacking" — status update only.
+ * Individual attacks are dispatched as separate steps from the workflow.
+ */
+export async function startAttackPhase(
+  matchId: string,
+  playerCount: number
+): Promise<void> {
+  "use step";
 
-  // Update player attack statuses
-  for (const app of playerApps) {
+  try {
     await db
-      .update(players)
-      .set({ attackStatus: "completed" })
-      .where(eq(players.id, app.playerId));
+      .update(matches)
+      .set({ status: "attacking", attackStartedAt: new Date() })
+      .where(eq(matches.id, matchId));
+    await redis.set(redisKeys.matchStatus(matchId), "attacking");
+
+    await emitMatchEvent(matchId, {
+      eventType: "attack_started",
+      payload: { playerCount },
+    });
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "startAttackPhase",
+      matchId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
   }
+}
 
-  await emitMatchEvent(matchId, {
-    eventType: "attack_completed",
-    payload: {
-      totalFlagsCaptured: results.reduce((sum, r) => sum + r.flagsCaptured, 0),
-    },
-  });
+/**
+ * Update player statuses and emit completion event after all attacks finish.
+ */
+export async function completeAttackPhase(
+  matchId: string,
+  playerIds: string[],
+  results: AttackPairResult[]
+): Promise<void> {
+  "use step";
 
-  return { results };
+  try {
+    // Update player attack statuses
+    for (const playerId of playerIds) {
+      await db
+        .update(players)
+        .set({ attackStatus: "completed" })
+        .where(eq(players.id, playerId));
+    }
+
+    await emitMatchEvent(matchId, {
+      eventType: "attack_completed",
+      payload: {
+        totalFlagsCaptured: results.reduce(
+          (sum, r) => sum + r.flagsCaptured,
+          0
+        ),
+      },
+    });
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "completeAttackPhase",
+      matchId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
+  }
 }

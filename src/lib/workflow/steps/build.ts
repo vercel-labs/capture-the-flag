@@ -14,7 +14,7 @@ interface BuildInput {
   config: MatchConfig;
 }
 
-interface BuildResult {
+export interface BuildResult {
   playerId: string;
   modelId: string;
   sandboxId: string;
@@ -26,69 +26,81 @@ interface BuildResult {
 export async function buildPlayerApp(input: BuildInput): Promise<BuildResult> {
   "use step";
 
-  const { matchId, playerId, modelId, config } = input;
+  try {
+    const { matchId, playerId, modelId, config } = input;
 
-  await emitMatchEvent(matchId, {
-    eventType: "build_started",
-    playerId,
-    payload: { modelId },
-  });
+    await emitMatchEvent(matchId, {
+      eventType: "build_started",
+      playerId,
+      payload: { modelId },
+    });
 
-  // Update player build status
-  await db
-    .update(players)
-    .set({ buildStatus: "building" })
-    .where(eq(players.id, playerId));
+    // Update player build status
+    await db
+      .update(players)
+      .set({ buildStatus: "building" })
+      .where(eq(players.id, playerId));
 
-  const result = await buildApp(matchId, playerId, modelId, config);
+    const result = await buildApp(matchId, playerId, modelId, config);
 
-  // Update player record
-  await db
-    .update(players)
-    .set({
+    // Update player record
+    await db
+      .update(players)
+      .set({
+        sandboxId: result.sandboxId,
+        appUrl: result.appUrl,
+        buildStatus: result.success ? "completed" : "failed",
+      })
+      .where(eq(players.id, playerId));
+
+    await emitMatchEvent(matchId, {
+      eventType: result.success ? "build_completed" : "build_failed",
+      playerId,
+      payload: { modelId, sandboxId: result.sandboxId, appUrl: result.appUrl },
+    });
+
+    return {
+      playerId,
+      modelId,
       sandboxId: result.sandboxId,
       appUrl: result.appUrl,
-      buildStatus: result.success ? "completed" : "failed",
-    })
-    .where(eq(players.id, playerId));
-
-  await emitMatchEvent(matchId, {
-    eventType: result.success ? "build_completed" : "build_failed",
-    playerId,
-    payload: { modelId, sandboxId: result.sandboxId, appUrl: result.appUrl },
-  });
-
-  return {
-    playerId,
-    modelId,
-    sandboxId: result.sandboxId,
-    appUrl: result.appUrl,
-    success: result.success,
-    error: result.error,
-  };
+      success: result.success,
+      error: result.error,
+    };
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "buildPlayerApp",
+      matchId: input.matchId,
+      playerId: input.playerId,
+      modelId: input.modelId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
+  }
 }
 
-export async function buildAllApps(
-  matchId: string,
-  playerIds: string[],
-  modelIds: string[],
-  config: MatchConfig
-): Promise<BuildResult[]> {
+/**
+ * Mark the match as "building" — status update only.
+ * Individual builds are dispatched as separate steps from the workflow.
+ */
+export async function startBuildPhase(matchId: string): Promise<void> {
   "use step";
 
-  await db
-    .update(matches)
-    .set({ status: "building", buildStartedAt: new Date() })
-    .where(eq(matches.id, matchId));
+  try {
+    await db
+      .update(matches)
+      .set({ status: "building", buildStartedAt: new Date() })
+      .where(eq(matches.id, matchId));
 
-  await redis.set(redisKeys.matchStatus(matchId), "building");
-
-  // Build all apps in parallel (via buildPlayerApp for events + DB updates)
-  const results = await Promise.all(
-    playerIds.map((playerId, i) =>
-      buildPlayerApp({ matchId, playerId, modelId: modelIds[i], config })
-    )
-  );
-
-  return results;
+    await redis.set(redisKeys.matchStatus(matchId), "building");
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "startBuildPhase",
+      matchId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
+  }
 }

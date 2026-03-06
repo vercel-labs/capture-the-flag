@@ -1,9 +1,13 @@
 import { createHook } from "workflow";
 import { FatalError } from "workflow";
 import { setupMatch } from "./steps/setup";
-import { buildAllApps } from "./steps/build";
+import { startBuildPhase, buildPlayerApp } from "./steps/build";
 import { verifyDeployments } from "./steps/deploy";
-import { runAttackPhase } from "./steps/attack";
+import {
+  startAttackPhase,
+  attackPlayerApp,
+  completeAttackPhase,
+} from "./steps/attack";
 import { scoreMatch } from "./steps/scoring";
 import { cleanupMatch, failMatch, forceFailMatch } from "./steps/cleanup";
 import type { MatchConfig } from "@/lib/config/types";
@@ -28,12 +32,19 @@ export async function ctfMatchWorkflow(input: CtfMatchInput) {
   createHook<{ reason: string }>({ token: `ctf-stop:${matchId}` });
 
   try {
-    // Step 2: Build — each model builds an app in a sandbox (parallel)
-    const buildResults = await buildAllApps(
-      matchId,
-      playerIds,
-      config.models,
-      config
+    // Step 2a: Mark match as building
+    await startBuildPhase(matchId);
+
+    // Step 2b: Build each player's app (each dispatched as a separate step)
+    const buildResults = await Promise.all(
+      playerIds.map((playerId, i) =>
+        buildPlayerApp({
+          matchId,
+          playerId,
+          modelId: config.models[i],
+          config,
+        })
+      )
     );
 
     // Check for build failures
@@ -61,12 +72,43 @@ export async function ctfMatchWorkflow(input: CtfMatchInput) {
       );
     }
 
-    // Step 4: Attack — models attack each other's apps
-    await runAttackPhase({
+    // Step 4a: Mark match as attacking
+    await startAttackPhase(matchId, healthyApps.length);
+
+    // Step 4b: Each player attacks all others (each dispatched as a separate step)
+    const attackPairs: Array<{
+      attacker: { playerId: string; modelId: string };
+      target: { playerId: string; modelId: string; appUrl: string };
+    }> = [];
+    for (const attacker of healthyApps) {
+      for (const target of healthyApps) {
+        if (attacker.playerId === target.playerId) continue;
+        attackPairs.push({
+          attacker: {
+            playerId: attacker.playerId,
+            modelId: attacker.modelId,
+          },
+          target: {
+            playerId: target.playerId,
+            modelId: target.modelId,
+            appUrl: target.appUrl,
+          },
+        });
+      }
+    }
+
+    const attackResults = await Promise.all(
+      attackPairs.map(({ attacker, target }) =>
+        attackPlayerApp({ matchId, attacker, target, config })
+      )
+    );
+
+    // Step 4c: Update player statuses
+    await completeAttackPhase(
       matchId,
-      config,
-      playerApps: healthyApps,
-    });
+      healthyApps.map((a) => a.playerId),
+      attackResults
+    );
 
     // Step 5: Scoring — tally results, update leaderboard
     const scoringResult = await scoreMatch(matchId);

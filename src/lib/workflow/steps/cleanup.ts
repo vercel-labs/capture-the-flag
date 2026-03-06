@@ -35,41 +35,51 @@ async function copyTimelineToDb(matchId: string): Promise<void> {
 export async function failMatch(matchId: string): Promise<void> {
   "use step";
 
-  // Stop all player sandboxes
-  const matchPlayers = await db
-    .select()
-    .from(players)
-    .where(eq(players.matchId, matchId));
+  try {
+    // Stop all player sandboxes
+    const matchPlayers = await db
+      .select()
+      .from(players)
+      .where(eq(players.matchId, matchId));
 
-  await Promise.all(
-    matchPlayers
-      .filter((p) => p.sandboxId)
-      .map(async (p) => {
-        try {
-          const sandbox = await getSandbox(p.sandboxId!);
-          await stopSandbox(sandbox);
-        } catch {
-          // Sandbox may already be stopped
-        }
-      })
-  );
+    await Promise.all(
+      matchPlayers
+        .filter((p) => p.sandboxId)
+        .map(async (p) => {
+          try {
+            const sandbox = await getSandbox(p.sandboxId!);
+            await stopSandbox(sandbox);
+          } catch {
+            // Sandbox may already be stopped
+          }
+        })
+    );
 
-  // Copy Redis timeline to DB before marking failed
-  await copyTimelineToDb(matchId);
+    // Copy Redis timeline to DB before marking failed
+    await copyTimelineToDb(matchId);
 
-  // Mark match as failed
-  await db
-    .update(matches)
-    .set({ status: "failed", completedAt: new Date() })
-    .where(eq(matches.id, matchId));
+    // Mark match as failed
+    await db
+      .update(matches)
+      .set({ status: "failed", completedAt: new Date() })
+      .where(eq(matches.id, matchId));
 
-  await redis.set(redisKeys.matchStatus(matchId), "failed");
-  await redis.srem(redisKeys.activeMatches, matchId);
+    await redis.set(redisKeys.matchStatus(matchId), "failed");
+    await redis.srem(redisKeys.activeMatches, matchId);
 
-  await emitMatchEvent(matchId, {
-    eventType: "match_failed",
-    payload: { failedAt: new Date().toISOString() },
-  });
+    await emitMatchEvent(matchId, {
+      eventType: "match_failed",
+      payload: { failedAt: new Date().toISOString() },
+    });
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "failMatch",
+      matchId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
+  }
 }
 
 /**
@@ -80,52 +90,72 @@ export async function failMatch(matchId: string): Promise<void> {
 export async function forceFailMatch(matchId: string): Promise<void> {
   "use step";
 
-  await db
-    .update(matches)
-    .set({ status: "failed", completedAt: new Date() })
-    .where(eq(matches.id, matchId));
-  await redis.set(redisKeys.matchStatus(matchId), "failed").catch(() => {});
-  await redis.srem(redisKeys.activeMatches, matchId).catch(() => {});
+  try {
+    await db
+      .update(matches)
+      .set({ status: "failed", completedAt: new Date() })
+      .where(eq(matches.id, matchId));
+    await redis.set(redisKeys.matchStatus(matchId), "failed").catch(() => {});
+    await redis.srem(redisKeys.activeMatches, matchId).catch(() => {});
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "forceFailMatch",
+      matchId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
+  }
 }
 
 export async function cleanupMatch(matchId: string): Promise<void> {
   "use step";
 
-  // Get all players to find sandbox IDs
-  const matchPlayers = await db
-    .select()
-    .from(players)
-    .where(eq(players.matchId, matchId));
+  try {
+    // Get all players to find sandbox IDs
+    const matchPlayers = await db
+      .select()
+      .from(players)
+      .where(eq(players.matchId, matchId));
 
-  // Stop all sandboxes
-  const stopTasks = matchPlayers
-    .filter((p) => p.sandboxId)
-    .map(async (p) => {
-      try {
-        const sandbox = await getSandbox(p.sandboxId!);
-        await stopSandbox(sandbox);
-      } catch {
-        // Sandbox may already be stopped
-      }
+    // Stop all sandboxes
+    const stopTasks = matchPlayers
+      .filter((p) => p.sandboxId)
+      .map(async (p) => {
+        try {
+          const sandbox = await getSandbox(p.sandboxId!);
+          await stopSandbox(sandbox);
+        } catch {
+          // Sandbox may already be stopped
+        }
+      });
+
+    await Promise.all(stopTasks);
+
+    // Copy Redis timeline to match_events table (preserving timestamps)
+    await copyTimelineToDb(matchId);
+
+    // Update match status
+    await db
+      .update(matches)
+      .set({ status: "completed", completedAt: new Date() })
+      .where(eq(matches.id, matchId));
+
+    // Clean up Redis
+    await redis.set(redisKeys.matchStatus(matchId), "completed");
+    await redis.srem(redisKeys.activeMatches, matchId);
+
+    await emitMatchEvent(matchId, {
+      eventType: "match_completed",
+      payload: { completedAt: new Date().toISOString() },
     });
-
-  await Promise.all(stopTasks);
-
-  // Copy Redis timeline to match_events table (preserving timestamps)
-  await copyTimelineToDb(matchId);
-
-  // Update match status
-  await db
-    .update(matches)
-    .set({ status: "completed", completedAt: new Date() })
-    .where(eq(matches.id, matchId));
-
-  // Clean up Redis
-  await redis.set(redisKeys.matchStatus(matchId), "completed");
-  await redis.srem(redisKeys.activeMatches, matchId);
-
-  await emitMatchEvent(matchId, {
-    eventType: "match_completed",
-    payload: { completedAt: new Date().toISOString() },
-  });
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "cleanupMatch",
+      matchId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
+  }
 }
