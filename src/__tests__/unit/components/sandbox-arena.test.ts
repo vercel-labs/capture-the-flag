@@ -129,6 +129,17 @@ describe("initArenaState", () => {
     expect(state.matchPhase).toBe("building");
   });
 
+  it("preserves attackStatus from DB", () => {
+    const players = [
+      makePlayer({ id: "p1", attackStatus: "attacking" }),
+      makePlayer({ id: "p2", modelId: "openai/gpt-4.1", attackStatus: "attacking" }),
+    ];
+    const state = initArenaState(players, [], "attacking");
+
+    expect(state.players.get("p1")!.attackStatus).toBe("attacking");
+    expect(state.players.get("p2")!.attackStatus).toBe("attacking");
+  });
+
   it("uses match status as initial phase", () => {
     const state = initArenaState(
       [makePlayer()],

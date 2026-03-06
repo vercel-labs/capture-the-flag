@@ -93,6 +93,12 @@ export async function startAttackPhase(
       .where(eq(matches.id, matchId));
     await redis.set(redisKeys.matchStatus(matchId), "attacking");
 
+    // Persist attackStatus to DB so page reloads show correct status
+    const matchPlayers = await db.select({ id: players.id }).from(players).where(eq(players.matchId, matchId));
+    for (const p of matchPlayers) {
+      await db.update(players).set({ attackStatus: "attacking" }).where(eq(players.id, p.id));
+    }
+
     await emitMatchEvent(matchId, {
       eventType: "attack_started",
       payload: { playerCount },
