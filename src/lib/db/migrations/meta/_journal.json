@@ -8,6 +8,13 @@
       "when": 1772570224395,
       "tag": "0000_closed_silvermane",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772773715502,
+      "tag": "0001_jazzy_wolfpack",
+      "breakpoints": true
     }
   ]
 }

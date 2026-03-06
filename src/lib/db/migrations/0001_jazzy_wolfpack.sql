@@ -1,0 +1,1 @@
+ALTER TABLE "flag_captures" ADD COLUMN "failure_reason" text;
