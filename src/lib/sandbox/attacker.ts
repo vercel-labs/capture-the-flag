@@ -94,6 +94,7 @@ export async function attackApp(
           isValid: result.isValid,
           pointsAwarded: result.pointsAwarded,
           method,
+          failureReason: result.isValid ? undefined : result.error,
         });
 
         if (result.isValid) {

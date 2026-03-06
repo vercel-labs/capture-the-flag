@@ -7,6 +7,28 @@ import { getSandbox, stopSandbox } from "@/lib/sandbox/manager";
 import { getMatchTimeline, emitMatchEvent } from "@/lib/events/emitter";
 
 /**
+ * Copy the Redis event timeline into the match_events DB table,
+ * preserving original timestamps.
+ */
+async function copyTimelineToDb(matchId: string): Promise<void> {
+  const timeline = await getMatchTimeline(matchId);
+  if (timeline.length > 0) {
+    await db.insert(matchEvents).values(
+      timeline.map((event) => {
+        const e = event as unknown as Record<string, unknown>;
+        return {
+          matchId,
+          playerId: e.playerId as string | undefined,
+          eventType: e.eventType as string,
+          payload: e.payload as Record<string, unknown>,
+          createdAt: e.timestamp ? new Date(e.timestamp as string) : new Date(),
+        };
+      })
+    );
+  }
+}
+
+/**
  * Mark a match as failed and clean up all sandbox resources.
  * Called when the workflow encounters an unrecoverable error.
  */
@@ -31,6 +53,9 @@ export async function failMatch(matchId: string): Promise<void> {
         }
       })
   );
+
+  // Copy Redis timeline to DB before marking failed
+  await copyTimelineToDb(matchId);
 
   // Mark match as failed
   await db
@@ -70,21 +95,8 @@ export async function cleanupMatch(matchId: string): Promise<void> {
 
   await Promise.all(stopTasks);
 
-  // Copy Redis timeline to match_events table
-  const timeline = await getMatchTimeline(matchId);
-  if (timeline.length > 0) {
-    await db.insert(matchEvents).values(
-      timeline.map((event) => {
-        const e = event as unknown as Record<string, unknown>;
-        return {
-          matchId,
-          playerId: e.playerId as string | undefined,
-          eventType: e.eventType as string,
-          payload: e.payload as Record<string, unknown>,
-        };
-      })
-    );
-  }
+  // Copy Redis timeline to match_events table (preserving timestamps)
+  await copyTimelineToDb(matchId);
 
   // Update match status
   await db

@@ -8,6 +8,7 @@ interface FlagCapture {
   isValid: boolean;
   pointsAwarded: number | null;
   method: string | null;
+  failureReason: string | null;
   capturedAt: string | Date | null;
 }
 
@@ -64,6 +65,11 @@ export function FlagLog({
                   {capture.method && (
                     <div className="text-[10px] text-muted truncate">
                       {capture.method}
+                    </div>
+                  )}
+                  {!capture.isValid && capture.failureReason && (
+                    <div className="text-[10px] text-danger/70 truncate">
+                      {capture.failureReason}
                     </div>
                   )}
                 </div>

@@ -51,7 +51,7 @@ export async function verifyDeployments(
       if (healthy) {
         await db
           .update(players)
-          .set({ appUrl: app.appUrl })
+          .set({ appUrl: app.appUrl, buildStatus: "live" })
           .where(eq(players.id, app.playerId));
       }
 
@@ -70,8 +70,10 @@ export async function verifyDeployments(
     eventType: allHealthy ? "deploy_completed" : "deploy_failed",
     payload: {
       results: results.map((r) => ({
+        playerId: r.playerId,
         modelId: r.modelId,
         healthy: r.healthy,
+        ...(r.healthy && r.appUrl ? { appUrl: r.appUrl } : {}),
       })),
     },
   });

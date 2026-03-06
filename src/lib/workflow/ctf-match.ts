@@ -6,6 +6,11 @@ import { verifyDeployments } from "./steps/deploy";
 import { runAttackPhase } from "./steps/attack";
 import { scoreMatch } from "./steps/scoring";
 import { cleanupMatch, failMatch } from "./steps/cleanup";
+import { db } from "@/lib/db/client";
+import { matches } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { redis } from "@/lib/redis/client";
+import { redisKeys } from "@/lib/redis/keys";
 import type { MatchConfig } from "@/lib/config/types";
 
 interface CtfMatchInput {
@@ -81,7 +86,16 @@ export async function ctfMatchWorkflow(input: CtfMatchInput) {
       scores: scoringResult.scores,
     };
   } catch (error) {
-    await failMatch(matchId);
+    try {
+      await failMatch(matchId);
+    } catch {
+      // Last resort: force-set status in DB so match isn't stuck as "LIVE"
+      await db
+        .update(matches)
+        .set({ status: "failed", completedAt: new Date() })
+        .where(eq(matches.id, matchId));
+      await redis.set(redisKeys.matchStatus(matchId), "failed").catch(() => {});
+    }
     throw error;
   }
 }

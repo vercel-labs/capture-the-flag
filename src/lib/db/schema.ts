@@ -86,6 +86,7 @@ export const flagCaptures = pgTable("flag_captures", {
   isValid: boolean("is_valid").notNull(),
   pointsAwarded: integer("points_awarded").default(0),
   method: text("method"),
+  failureReason: text("failure_reason"),
   capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow(),
 });
 
