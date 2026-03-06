@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
 :root {
+  --background: #fafafa;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-border: #e5e5e5;
+  --muted: #737373;
+  --accent: #16a34a;
+  --accent-dim: #bbf7d0;
+  --danger: #dc2626;
+  --warning: #d97706;
+}
+
+.dark {
   --background: #0a0a0a;
   --foreground: #ededed;
   --card: #141414;

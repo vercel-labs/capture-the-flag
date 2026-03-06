@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,35 +27,38 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <nav className="border-b border-card-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-            <Link
-              href="/"
-              className="font-mono font-bold text-accent tracking-tight"
-            >
-              CTF://arena
-            </Link>
-            <div className="flex gap-6 text-sm">
+        <ThemeProvider>
+          <nav className="border-b border-card-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+            <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
               <Link
-                href="/leaderboard"
-                className="text-muted hover:text-foreground transition-colors"
+                href="/"
+                className="font-mono font-bold text-accent tracking-tight"
               >
-                Leaderboard
+                CTF://arena
               </Link>
-              <Link
-                href="/matches"
-                className="text-muted hover:text-foreground transition-colors"
-              >
-                Matches
-              </Link>
+              <div className="flex gap-6 text-sm items-center">
+                <Link
+                  href="/leaderboard"
+                  className="text-muted hover:text-foreground transition-colors"
+                >
+                  Leaderboard
+                </Link>
+                <Link
+                  href="/matches"
+                  className="text-muted hover:text-foreground transition-colors"
+                >
+                  Matches
+                </Link>
+                <ThemeToggle />
+              </div>
             </div>
-          </div>
-        </nav>
-        <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
+          </nav>
+          <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
+        </ThemeProvider>
       </body>
     </html>
   );
