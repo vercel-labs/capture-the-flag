@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/app/.well-known/workflow/v1/step/route.js": {
+      "maxDuration": 800
+    }
+  }
+}

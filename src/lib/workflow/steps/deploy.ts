@@ -30,53 +30,63 @@ export async function verifyDeployments(
 ): Promise<DeployResult> {
   "use step";
 
-  const { matchId, playerApps } = input;
+  try {
+    const { matchId, playerApps } = input;
 
-  await db
-    .update(matches)
-    .set({ status: "deploying" })
-    .where(eq(matches.id, matchId));
-  await redis.set(redisKeys.matchStatus(matchId), "deploying");
+    await db
+      .update(matches)
+      .set({ status: "deploying" })
+      .where(eq(matches.id, matchId));
+    await redis.set(redisKeys.matchStatus(matchId), "deploying");
 
-  await emitMatchEvent(matchId, {
-    eventType: "deploy_started",
-    payload: { playerCount: playerApps.length },
-  });
+    await emitMatchEvent(matchId, {
+      eventType: "deploy_started",
+      payload: { playerCount: playerApps.length },
+    });
 
-  // Health check all apps in parallel
-  const results = await Promise.all(
-    playerApps.map(async (app) => {
-      const healthy = await healthCheck(app.appUrl);
+    // Health check all apps in parallel
+    const results = await Promise.all(
+      playerApps.map(async (app) => {
+        const healthy = await healthCheck(app.appUrl);
 
-      if (healthy) {
-        await db
-          .update(players)
-          .set({ appUrl: app.appUrl, buildStatus: "live" })
-          .where(eq(players.id, app.playerId));
-      }
+        if (healthy) {
+          await db
+            .update(players)
+            .set({ appUrl: app.appUrl, buildStatus: "live" })
+            .where(eq(players.id, app.playerId));
+        }
 
-      return {
-        playerId: app.playerId,
-        modelId: app.modelId,
-        appUrl: app.appUrl,
-        healthy,
-      };
-    })
-  );
+        return {
+          playerId: app.playerId,
+          modelId: app.modelId,
+          appUrl: app.appUrl,
+          healthy,
+        };
+      })
+    );
 
-  const allHealthy = results.every((r) => r.healthy);
+    const allHealthy = results.every((r) => r.healthy);
 
-  await emitMatchEvent(matchId, {
-    eventType: allHealthy ? "deploy_completed" : "deploy_failed",
-    payload: {
-      results: results.map((r) => ({
-        playerId: r.playerId,
-        modelId: r.modelId,
-        healthy: r.healthy,
-        ...(r.healthy && r.appUrl ? { appUrl: r.appUrl } : {}),
-      })),
-    },
-  });
+    await emitMatchEvent(matchId, {
+      eventType: allHealthy ? "deploy_completed" : "deploy_failed",
+      payload: {
+        results: results.map((r) => ({
+          playerId: r.playerId,
+          modelId: r.modelId,
+          healthy: r.healthy,
+          ...(r.healthy && r.appUrl ? { appUrl: r.appUrl } : {}),
+        })),
+      },
+    });
 
-  return { allHealthy, results };
+    return { allHealthy, results };
+  } catch (error) {
+    console.error(JSON.stringify({
+      step: "verifyDeployments",
+      matchId: input.matchId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    }));
+    throw error;
+  }
 }
