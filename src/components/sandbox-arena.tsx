@@ -417,8 +417,8 @@ function PlayerCard({
         </div>
         <SandboxStatus status={player.buildStatus} />
         {player.sandboxId && (
-          <div className="text-[10px] font-mono text-muted truncate" title={player.sandboxId}>
-            sandbox: {player.sandboxId}
+          <div className="text-[10px] font-mono text-muted break-all" title={player.sandboxId}>
+            ID: {player.sandboxId}
           </div>
         )}
         {player.appUrl && (
