@@ -12,6 +12,7 @@ export interface ArenaPlayer {
   buildStatus: string;
   attackStatus: string;
   appUrl: string | null;
+  sandboxId: string | null;
   score: number;
   totalFlagsCaptured: number;
   totalFlagsLost: number;
@@ -89,6 +90,9 @@ export function applyEvent(state: ArenaState, event: ArenaEvent): ArenaState {
         p.buildStatus = "completed";
         if (event.payload?.appUrl) {
           p.appUrl = event.payload.appUrl as string;
+        }
+        if (event.payload?.sandboxId) {
+          p.sandboxId = event.payload.sandboxId as string;
         }
       }
       break;
@@ -412,6 +416,11 @@ function PlayerCard({
           App Sandbox
         </div>
         <SandboxStatus status={player.buildStatus} />
+        {player.sandboxId && (
+          <div className="text-[10px] font-mono text-muted truncate" title={player.sandboxId}>
+            sandbox: {player.sandboxId}
+          </div>
+        )}
         {player.appUrl && (
           <a
             href={player.appUrl}

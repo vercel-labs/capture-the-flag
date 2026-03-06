@@ -151,6 +151,7 @@ export default async function MatchDetailPage({
             buildStatus: p.buildStatus ?? "pending",
             attackStatus: p.attackStatus ?? "pending",
             appUrl: p.appUrl,
+            sandboxId: p.sandboxId ?? null,
             score: p.score ?? 0,
             totalFlagsCaptured: p.totalFlagsCaptured ?? 0,
             totalFlagsLost: p.totalFlagsLost ?? 0,
