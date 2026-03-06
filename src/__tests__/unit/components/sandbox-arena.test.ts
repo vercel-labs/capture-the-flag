@@ -4,6 +4,7 @@ import {
   applyEvent,
   computeCaptureStats,
   computePlayerStats,
+  computeSummary,
   type ArenaPlayer,
   type ArenaCapture,
   type ArenaState,
@@ -616,5 +617,30 @@ describe("computePlayerStats", () => {
     expect(stats.capturedByOpponent.get("p3")).toBe(1);
     expect(stats.capturedByOpponent.get("p4")).toBe(1);
     expect(stats.capturedByOpponent.get("p5")).toBe(1);
+  });
+});
+
+// --- computeSummary ---
+
+describe("computeSummary", () => {
+  it("counts build and attack statuses correctly", () => {
+    const players = new Map<string, ArenaPlayer>([
+      ["p1", makePlayer({ id: "p1", buildStatus: "live", attackStatus: "attacking" })],
+      ["p2", makePlayer({ id: "p2", buildStatus: "live", attackStatus: "attacking" })],
+      ["p3", makePlayer({ id: "p3", buildStatus: "failed", attackStatus: "pending" })],
+    ]);
+
+    const { buildCounts, attackCounts } = computeSummary(players);
+
+    expect(buildCounts).toEqual({ live: 2, failed: 1 });
+    expect(attackCounts).toEqual({ attacking: 2, pending: 1 });
+  });
+
+  it("returns empty objects for no players", () => {
+    const players = new Map<string, ArenaPlayer>();
+    const { buildCounts, attackCounts } = computeSummary(players);
+
+    expect(buildCounts).toEqual({});
+    expect(attackCounts).toEqual({});
   });
 });
