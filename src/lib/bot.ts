@@ -1,4 +1,4 @@
-import { Chat, Modal, TextInput } from "chat";
+import { Chat, Modal, TextInput, Select } from "chat";
 import type { SlashCommandEvent } from "chat";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createRedisState } from "@chat-adapter/state-redis";
@@ -6,6 +6,7 @@ import { start, resumeHook } from "workflow/api";
 import { ctfMatchWorkflow } from "@/lib/workflow/ctf-match";
 import { matchConfigSchema } from "@/lib/config/types";
 import { DEFAULT_MATCH_CONFIG } from "@/lib/config/defaults";
+import { getCtfModelOptions } from "@/lib/ai/models";
 import { db } from "@/lib/db/client";
 import { players, leaderboardStats } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -74,15 +75,19 @@ function registerHandlers(instance: Chat) {
   });
 
   instance.onModalSubmit("ctf_start", async (event): Promise<undefined> => {
-    const { appSpec, vulnCount, models, buildTime, attackTime } = event.values;
+    const { appSpec, vulnCount, model1, model2, model3, model4, buildTime, attackTime } = event.values;
+
+    const selectedModels = [
+      ...new Set([model1, model2, model3, model4].filter(Boolean)),
+    ];
 
     const config = matchConfigSchema.parse({
       appSpec: appSpec || DEFAULT_MATCH_CONFIG.appSpec,
       vulnerabilityCount: parseInt(vulnCount || "10"),
-      models: (models || DEFAULT_MATCH_CONFIG.models.join(", "))
-        .split(",")
-        .map((m: string) => m.trim())
-        .filter(Boolean),
+      models:
+        selectedModels.length >= 2
+          ? selectedModels
+          : DEFAULT_MATCH_CONFIG.models,
       buildTimeLimitSeconds: parseInt(buildTime || "600"),
       attackTimeLimitSeconds: parseInt(attackTime || "600"),
     });
@@ -105,6 +110,9 @@ function registerHandlers(instance: Chat) {
 }
 
 async function handleStartModal(event: SlashCommandEvent) {
+  const modelOptions = await getCtfModelOptions();
+  const [defaultModel1, defaultModel2] = DEFAULT_MATCH_CONFIG.models;
+
   await event.openModal(
     Modal({
       callbackId: "ctf_start",
@@ -123,12 +131,33 @@ async function handleStartModal(event: SlashCommandEvent) {
           placeholder: "10",
           initialValue: String(DEFAULT_MATCH_CONFIG.vulnerabilityCount),
         }),
-        TextInput({
-          id: "models",
-          label: "Models (comma-separated)",
-          placeholder: "anthropic/claude-opus-4.5, openai/gpt-5.1-codex",
-          initialValue: DEFAULT_MATCH_CONFIG.models.join(", "),
-          multiline: true,
+        Select({
+          id: "model1",
+          label: "Model 1 (Defender & Attacker)",
+          placeholder: "Select a model",
+          options: modelOptions,
+          initialOption: defaultModel1,
+        }),
+        Select({
+          id: "model2",
+          label: "Model 2 (Defender & Attacker)",
+          placeholder: "Select a model",
+          options: modelOptions,
+          initialOption: defaultModel2,
+        }),
+        Select({
+          id: "model3",
+          label: "Model 3 (Optional)",
+          placeholder: "None",
+          options: modelOptions,
+          optional: true,
+        }),
+        Select({
+          id: "model4",
+          label: "Model 4 (Optional)",
+          placeholder: "None",
+          options: modelOptions,
+          optional: true,
         }),
         TextInput({
           id: "buildTime",
