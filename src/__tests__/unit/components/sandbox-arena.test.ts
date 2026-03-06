@@ -19,6 +19,7 @@ function makePlayer(overrides: Partial<ArenaPlayer> = {}): ArenaPlayer {
     buildStatus: "pending",
     attackStatus: "pending",
     appUrl: null,
+    sandboxId: null,
     score: 0,
     totalFlagsCaptured: 0,
     totalFlagsLost: 0,
@@ -174,6 +175,28 @@ describe("applyEvent", () => {
 
     expect(next.players.get("p1")!.buildStatus).toBe("completed");
     expect(next.players.get("p1")!.appUrl).toBe("https://app1.vercel.app");
+  });
+
+  it("build_completed extracts sandboxId from payload", () => {
+    const state = twoPlayerState();
+    const next = applyEvent(state, {
+      eventType: "build_completed",
+      playerId: "p1",
+      payload: { appUrl: "https://app1.vercel.app", sandboxId: "sbx_abc123" },
+    });
+
+    expect(next.players.get("p1")!.sandboxId).toBe("sbx_abc123");
+  });
+
+  it("build_completed without sandboxId leaves it unchanged", () => {
+    const state = twoPlayerState();
+    const next = applyEvent(state, {
+      eventType: "build_completed",
+      playerId: "p1",
+      payload: { appUrl: "https://app1.vercel.app" },
+    });
+
+    expect(next.players.get("p1")!.sandboxId).toBeNull();
   });
 
   it("build_failed sets buildStatus to failed", () => {
