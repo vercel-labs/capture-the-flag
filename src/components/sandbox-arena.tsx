@@ -413,9 +413,15 @@ function PlayerCard({
         </div>
         <SandboxStatus status={player.buildStatus} />
         {player.appUrl && (
-          <div className="text-[10px] text-muted truncate" title={player.appUrl}>
+          <a
+            href={player.appUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-muted truncate block hover:text-foreground underline"
+            title={player.appUrl}
+          >
             {player.appUrl}
-          </div>
+          </a>
         )}
       </div>
 
