@@ -83,19 +83,12 @@ export async function buildAllApps(
 
   await redis.set(redisKeys.matchStatus(matchId), "building");
 
-  // Build all apps in parallel
+  // Build all apps in parallel (via buildPlayerApp for events + DB updates)
   const results = await Promise.all(
     playerIds.map((playerId, i) =>
-      buildApp(matchId, playerId, modelIds[i], config)
+      buildPlayerApp({ matchId, playerId, modelId: modelIds[i], config })
     )
   );
 
-  return results.map((result, i) => ({
-    playerId: playerIds[i],
-    modelId: modelIds[i],
-    sandboxId: result.sandboxId,
-    appUrl: result.appUrl,
-    success: result.success,
-    error: result.error,
-  }));
+  return results;
 }

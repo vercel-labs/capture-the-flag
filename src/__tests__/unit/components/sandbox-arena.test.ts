@@ -226,6 +226,42 @@ describe("applyEvent", () => {
     expect(next.players.get("p2")!.buildStatus).toBe("failed");
   });
 
+  it("full build→deploy lifecycle transitions completed→deploying→live", () => {
+    let state = twoPlayerState();
+
+    // Build completed
+    state = applyEvent(state, {
+      eventType: "build_completed",
+      playerId: "p1",
+      payload: { appUrl: "https://app1.vercel.app" },
+    });
+    state = applyEvent(state, {
+      eventType: "build_completed",
+      playerId: "p2",
+      payload: { appUrl: "https://app2.vercel.app" },
+    });
+    expect(state.players.get("p1")!.buildStatus).toBe("completed");
+    expect(state.players.get("p2")!.buildStatus).toBe("completed");
+
+    // Deploy started
+    state = applyEvent(state, { eventType: "deploy_started" });
+    expect(state.players.get("p1")!.buildStatus).toBe("deploying");
+    expect(state.players.get("p2")!.buildStatus).toBe("deploying");
+
+    // Deploy completed with playerId and appUrl in results
+    state = applyEvent(state, {
+      eventType: "deploy_completed",
+      payload: {
+        results: [
+          { playerId: "p1", healthy: true, appUrl: "https://app1.vercel.app" },
+          { playerId: "p2", healthy: true, appUrl: "https://app2.vercel.app" },
+        ],
+      },
+    });
+    expect(state.players.get("p1")!.buildStatus).toBe("live");
+    expect(state.players.get("p2")!.buildStatus).toBe("live");
+  });
+
   it("deploy_failed marks unhealthy players as failed", () => {
     const state = twoPlayerState();
     const next = applyEvent(state, {
