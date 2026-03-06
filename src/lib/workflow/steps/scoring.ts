@@ -105,8 +105,12 @@ export async function scoreMatch(matchId: string): Promise<ScoringResult> {
     eventType: "scoring_completed",
     payload: {
       scores: scores.map((s) => ({
+        playerId: s.playerId,
         modelId: s.modelId,
         totalScore: s.totalScore,
+        capturePoints: s.capturePoints,
+        firstBloodBonus: s.firstBloodBonus,
+        defensePoints: s.defensePoints,
         flagsCaptured: s.flagsCaptured,
         flagsLost: s.flagsLost,
       })),

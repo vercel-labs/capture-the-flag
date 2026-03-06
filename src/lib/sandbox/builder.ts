@@ -104,8 +104,10 @@ export async function buildApp(
           playerId,
           payload: {
             category: vuln.category,
+            description: vuln.description,
             location: vuln.location,
             difficulty: vuln.difficulty,
+            modelId,
           },
         });
 

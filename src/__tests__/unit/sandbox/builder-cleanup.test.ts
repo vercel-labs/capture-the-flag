@@ -173,8 +173,10 @@ describe("buildApp sandbox cleanup", () => {
       playerId: "player-1",
       payload: {
         category: "xss",
+        description: "XSS in search",
         location: "/search",
         difficulty: 5,
+        modelId: "test/model",
       },
     });
   });
