@@ -199,10 +199,16 @@ export function applyEvent(state: ArenaState, event: ArenaEvent): ArenaState {
     }
     case "match_completed": {
       matchPhase = "completed";
+      for (const p of players.values()) {
+        if (p.buildStatus === "live") p.buildStatus = "shutdown";
+      }
       break;
     }
     case "match_failed": {
       matchPhase = "failed";
+      for (const p of players.values()) {
+        if (p.buildStatus === "live") p.buildStatus = "shutdown";
+      }
       break;
     }
   }
@@ -421,7 +427,7 @@ function PlayerCard({
             ID: {player.sandboxId}
           </div>
         )}
-        {player.appUrl && (
+        {player.appUrl && player.buildStatus !== "shutdown" && (
           <a
             href={player.appUrl}
             target="_blank"
@@ -431,6 +437,9 @@ function PlayerCard({
           >
             {player.appUrl}
           </a>
+        )}
+        {player.appUrl && player.buildStatus === "shutdown" && (
+          <span className="text-[10px] text-muted truncate block line-through">{player.appUrl}</span>
         )}
       </div>
 

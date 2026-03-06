@@ -418,10 +418,43 @@ describe("applyEvent", () => {
     expect(next.matchPhase).toBe("completed");
   });
 
+  it("match_completed sets live players buildStatus to shutdown", () => {
+    const state = twoPlayerState();
+    state.players.get("p1")!.buildStatus = "live";
+    state.players.get("p2")!.buildStatus = "live";
+
+    const next = applyEvent(state, { eventType: "match_completed" });
+
+    expect(next.players.get("p1")!.buildStatus).toBe("shutdown");
+    expect(next.players.get("p2")!.buildStatus).toBe("shutdown");
+  });
+
+  it("match_completed does not change failed buildStatus", () => {
+    const state = twoPlayerState();
+    state.players.get("p1")!.buildStatus = "live";
+    state.players.get("p2")!.buildStatus = "failed";
+
+    const next = applyEvent(state, { eventType: "match_completed" });
+
+    expect(next.players.get("p1")!.buildStatus).toBe("shutdown");
+    expect(next.players.get("p2")!.buildStatus).toBe("failed");
+  });
+
   it("match_failed sets matchPhase to failed", () => {
     const state = twoPlayerState();
     const next = applyEvent(state, { eventType: "match_failed" });
     expect(next.matchPhase).toBe("failed");
+  });
+
+  it("match_failed sets live players buildStatus to shutdown", () => {
+    const state = twoPlayerState();
+    state.players.get("p1")!.buildStatus = "live";
+    state.players.get("p2")!.buildStatus = "live";
+
+    const next = applyEvent(state, { eventType: "match_failed" });
+
+    expect(next.players.get("p1")!.buildStatus).toBe("shutdown");
+    expect(next.players.get("p2")!.buildStatus).toBe("shutdown");
   });
 
   it("does not mutate original state", () => {
