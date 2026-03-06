@@ -16,6 +16,7 @@ import {
   VulnerabilityReport,
   type VulnerabilityReportEntry,
 } from "@/components/vulnerability-report";
+import { RerunMatchButton } from "@/components/rerun-match-button";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +88,13 @@ export default async function MatchDetailPage({
     vulnerabilityCount?: number;
     buildTimeLimitSeconds?: number;
     attackTimeLimitSeconds?: number;
+    models?: string[];
   } | null;
+
+  const rerunConfig = {
+    ...config,
+    models: config?.models ?? matchPlayers.map((p) => p.modelId),
+  };
   const isActive = ["building", "deploying", "attacking", "scoring"].includes(
     match.status
   );
@@ -106,12 +113,15 @@ export default async function MatchDetailPage({
                 ` — Started ${new Date(match.startedAt).toLocaleString()}`}
             </p>
           </div>
-          {isActive && (
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-              <span className="text-xs text-accent font-mono">LIVE</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {isActive && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                <span className="text-xs text-accent font-mono">LIVE</span>
+              </div>
+            )}
+            <RerunMatchButton config={rerunConfig} />
+          </div>
         </div>
 
         {config && (
