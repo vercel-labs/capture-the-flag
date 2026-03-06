@@ -6,7 +6,7 @@ import { start, resumeHook } from "workflow/api";
 import { ctfMatchWorkflow } from "@/lib/workflow/ctf-match";
 import { matchConfigSchema } from "@/lib/config/types";
 import { DEFAULT_MATCH_CONFIG } from "@/lib/config/defaults";
-import { getCtfModelOptions } from "@/lib/ai/models";
+import { getCtfModelOptions, CTF_ELIGIBLE_MODELS } from "@/lib/ai/models";
 import { db } from "@/lib/db/client";
 import { players, leaderboardStats } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
@@ -42,8 +42,14 @@ function registerHandlers(instance: Chat) {
       return;
     }
 
-    if (args === "start") {
-      await handleStartModal(event);
+    const startMatch = args.match(/^start(?:\s+(\d+))?$/);
+    if (startMatch) {
+      const maxPlayers = CTF_ELIGIBLE_MODELS.length;
+      const playerCount = Math.max(2, Math.min(
+        parseInt(startMatch[1] || "2", 10),
+        maxPlayers,
+      ));
+      await handleStartModal(event, playerCount);
       return;
     }
 
@@ -70,16 +76,27 @@ function registerHandlers(instance: Chat) {
     }
 
     await event.channel.post(
-      "Usage: `/ctf start` | `/ctf start --quick` | `/ctf status` | `/ctf leaderboard` | `/ctf stop {matchId}` | `/ctf cleanup {matchId}`"
+      "Usage: `/ctf start [N]` | `/ctf start --quick` | `/ctf status` | `/ctf leaderboard` | `/ctf stop {matchId}` | `/ctf cleanup {matchId}`"
     );
   });
 
   instance.onModalSubmit("ctf_start", async (event): Promise<undefined> => {
-    const { appSpec, vulnCount, model1, model2, model3, model4, buildTime, attackTime } = event.values;
+    const { appSpec, vulnCount, buildTime, attackTime } = event.values;
 
-    const selectedModels = [
-      ...new Set([model1, model2, model3, model4].filter(Boolean)),
-    ];
+    let playerCount = 2;
+    try {
+      const meta = JSON.parse(event.privateMetadata || "{}");
+      playerCount = meta.playerCount ?? 2;
+    } catch {
+      // default to 2
+    }
+
+    const modelValues: string[] = [];
+    for (let i = 1; i <= playerCount; i++) {
+      const val = (event.values as Record<string, string>)[`model${i}`];
+      if (val) modelValues.push(val);
+    }
+    const selectedModels = [...new Set(modelValues)];
 
     const config = matchConfigSchema.parse({
       appSpec: appSpec || DEFAULT_MATCH_CONFIG.appSpec,
@@ -109,15 +126,31 @@ function registerHandlers(instance: Chat) {
   });
 }
 
-async function handleStartModal(event: SlashCommandEvent) {
+async function handleStartModal(event: SlashCommandEvent, playerCount: number = 2) {
   const modelOptions = await getCtfModelOptions();
-  const [defaultModel1, defaultModel2] = DEFAULT_MATCH_CONFIG.models;
+  const defaultModels = DEFAULT_MATCH_CONFIG.models;
+
+  const modelSelects = Array.from({ length: playerCount }, (_, i) => {
+    const num = i + 1;
+    const isRequired = num <= 2;
+    return Select({
+      id: `model${num}`,
+      label: isRequired
+        ? `Model ${num} (Defender & Attacker)`
+        : `Model ${num} (Optional)`,
+      placeholder: isRequired ? "Select a model" : "None",
+      options: modelOptions,
+      ...(isRequired && defaultModels[i] ? { initialOption: defaultModels[i] } : {}),
+      ...(!isRequired ? { optional: true } : {}),
+    });
+  });
 
   await event.openModal(
     Modal({
       callbackId: "ctf_start",
       title: "Start CTF Match",
       submitLabel: "Start Match",
+      privateMetadata: JSON.stringify({ playerCount }),
       children: [
         TextInput({
           id: "appSpec",
@@ -131,34 +164,7 @@ async function handleStartModal(event: SlashCommandEvent) {
           placeholder: "10",
           initialValue: String(DEFAULT_MATCH_CONFIG.vulnerabilityCount),
         }),
-        Select({
-          id: "model1",
-          label: "Model 1 (Defender & Attacker)",
-          placeholder: "Select a model",
-          options: modelOptions,
-          initialOption: defaultModel1,
-        }),
-        Select({
-          id: "model2",
-          label: "Model 2 (Defender & Attacker)",
-          placeholder: "Select a model",
-          options: modelOptions,
-          initialOption: defaultModel2,
-        }),
-        Select({
-          id: "model3",
-          label: "Model 3 (Optional)",
-          placeholder: "None",
-          options: modelOptions,
-          optional: true,
-        }),
-        Select({
-          id: "model4",
-          label: "Model 4 (Optional)",
-          placeholder: "None",
-          options: modelOptions,
-          optional: true,
-        }),
+        ...modelSelects,
         TextInput({
           id: "buildTime",
           label: "Build Time Limit (seconds)",

@@ -3,9 +3,11 @@ import {
   initArenaState,
   applyEvent,
   computeCaptureStats,
+  computePlayerStats,
   type ArenaPlayer,
   type ArenaCapture,
   type ArenaState,
+  // PlayerCaptureStats used via type inference in tests
 } from "@/components/sandbox-arena";
 
 // --- Helpers ---
@@ -49,6 +51,35 @@ function twoPlayerState(
     firstBloodPlayerId: null,
     matchPhase: "pending",
     ...overrides,
+  };
+}
+
+function nPlayerState(n: number): ArenaState {
+  const modelIds = [
+    "anthropic/claude-sonnet-4",
+    "openai/gpt-4.1",
+    "google/gemini-2.5-pro",
+    "xai/grok-4",
+    "mistral/devstral-2",
+    "deepseek/deepseek-v3.2",
+    "meta/llama-4-maverick",
+  ];
+  const players = new Map<string, ArenaPlayer>();
+  for (let i = 0; i < n; i++) {
+    const id = `p${i + 1}`;
+    players.set(
+      id,
+      makePlayer({
+        id,
+        modelId: modelIds[i % modelIds.length],
+      }),
+    );
+  }
+  return {
+    players,
+    captures: [],
+    firstBloodPlayerId: null,
+    matchPhase: "pending",
   };
 }
 
@@ -104,6 +135,18 @@ describe("initArenaState", () => {
       "completed",
     );
     expect(state.matchPhase).toBe("completed");
+  });
+
+  it("handles 5 players", () => {
+    const players = Array.from({ length: 5 }, (_, i) =>
+      makePlayer({ id: `p${i + 1}`, modelId: `model-${i + 1}` }),
+    );
+    const state = initArenaState(players, [], "pending");
+
+    expect(state.players.size).toBe(5);
+    for (let i = 1; i <= 5; i++) {
+      expect(state.players.get(`p${i}`)!.modelId).toBe(`model-${i}`);
+    }
   });
 });
 
@@ -306,6 +349,60 @@ describe("applyEvent", () => {
 
     expect(state.players.get("p1")!.buildStatus).toBe(originalP1Status);
   });
+
+  it("attack_started sets all N players to attacking", () => {
+    const state = nPlayerState(5);
+    const next = applyEvent(state, { eventType: "attack_started" });
+
+    expect(next.matchPhase).toBe("attacking");
+    for (let i = 1; i <= 5; i++) {
+      expect(next.players.get(`p${i}`)!.attackStatus).toBe("attacking");
+    }
+  });
+
+  it("scoring_completed updates scores for N players", () => {
+    const state = nPlayerState(5);
+    const scores = Array.from({ length: 5 }, (_, i) => ({
+      playerId: `p${i + 1}`,
+      score: (5 - i) * 100,
+    }));
+
+    const next = applyEvent(state, {
+      eventType: "scoring_completed",
+      payload: { scores },
+    });
+
+    for (let i = 0; i < 5; i++) {
+      expect(next.players.get(`p${i + 1}`)!.score).toBe((5 - i) * 100);
+    }
+  });
+
+  it("flag_captured works across different player pairs in N-player match", () => {
+    const state = nPlayerState(5);
+
+    let next = applyEvent(state, {
+      eventType: "flag_captured",
+      playerId: "p1",
+      payload: { defenderPlayerId: "p3", isValid: true, pointsAwarded: 100, captureId: "c1" },
+    });
+    next = applyEvent(next, {
+      eventType: "flag_captured",
+      playerId: "p4",
+      payload: { defenderPlayerId: "p2", isValid: true, pointsAwarded: 100, captureId: "c2" },
+    });
+    next = applyEvent(next, {
+      eventType: "flag_captured",
+      playerId: "p1",
+      payload: { defenderPlayerId: "p5", isValid: true, pointsAwarded: 100, captureId: "c3" },
+    });
+
+    expect(next.captures).toHaveLength(3);
+    expect(next.players.get("p1")!.totalFlagsCaptured).toBe(2);
+    expect(next.players.get("p4")!.totalFlagsCaptured).toBe(1);
+    expect(next.players.get("p3")!.totalFlagsLost).toBe(1);
+    expect(next.players.get("p2")!.totalFlagsLost).toBe(1);
+    expect(next.players.get("p5")!.totalFlagsLost).toBe(1);
+  });
 });
 
 // --- computeCaptureStats ---
@@ -338,5 +435,67 @@ describe("computeCaptureStats", () => {
     const stats = computeCaptureStats([], "p1", "p2");
     expect(stats.aToB).toBe(0);
     expect(stats.bToA).toBe(0);
+  });
+});
+
+// --- computePlayerStats ---
+
+describe("computePlayerStats", () => {
+  it("counts captures and losses across multiple opponents", () => {
+    const captures: ArenaCapture[] = [
+      makeCapture({ id: "c1", attackerPlayerId: "p1", defenderPlayerId: "p2" }),
+      makeCapture({ id: "c2", attackerPlayerId: "p1", defenderPlayerId: "p3" }),
+      makeCapture({ id: "c3", attackerPlayerId: "p1", defenderPlayerId: "p2" }),
+      makeCapture({ id: "c4", attackerPlayerId: "p3", defenderPlayerId: "p1" }),
+    ];
+
+    const stats = computePlayerStats(captures, "p1");
+    expect(stats.totalCaptured).toBe(3);
+    expect(stats.totalLost).toBe(1);
+    expect(stats.capturedByOpponent.get("p2")).toBe(2);
+    expect(stats.capturedByOpponent.get("p3")).toBe(1);
+  });
+
+  it("excludes invalid captures", () => {
+    const captures: ArenaCapture[] = [
+      makeCapture({ id: "c1", attackerPlayerId: "p1", defenderPlayerId: "p2", isValid: true }),
+      makeCapture({ id: "c2", attackerPlayerId: "p1", defenderPlayerId: "p2", isValid: false }),
+      makeCapture({ id: "c3", attackerPlayerId: "p2", defenderPlayerId: "p1", isValid: false }),
+    ];
+
+    const stats = computePlayerStats(captures, "p1");
+    expect(stats.totalCaptured).toBe(1);
+    expect(stats.totalLost).toBe(0);
+  });
+
+  it("returns zeros for player with no captures", () => {
+    const captures: ArenaCapture[] = [
+      makeCapture({ id: "c1", attackerPlayerId: "p2", defenderPlayerId: "p3" }),
+    ];
+
+    const stats = computePlayerStats(captures, "p1");
+    expect(stats.totalCaptured).toBe(0);
+    expect(stats.totalLost).toBe(0);
+    expect(stats.capturedByOpponent.size).toBe(0);
+  });
+
+  it("works in 5-player match", () => {
+    const captures: ArenaCapture[] = [
+      makeCapture({ id: "c1", attackerPlayerId: "p1", defenderPlayerId: "p2" }),
+      makeCapture({ id: "c2", attackerPlayerId: "p1", defenderPlayerId: "p3" }),
+      makeCapture({ id: "c3", attackerPlayerId: "p1", defenderPlayerId: "p4" }),
+      makeCapture({ id: "c4", attackerPlayerId: "p1", defenderPlayerId: "p5" }),
+      makeCapture({ id: "c5", attackerPlayerId: "p2", defenderPlayerId: "p1" }),
+      makeCapture({ id: "c6", attackerPlayerId: "p3", defenderPlayerId: "p1" }),
+    ];
+
+    const stats = computePlayerStats(captures, "p1");
+    expect(stats.totalCaptured).toBe(4);
+    expect(stats.totalLost).toBe(2);
+    expect(stats.capturedByOpponent.size).toBe(4);
+    expect(stats.capturedByOpponent.get("p2")).toBe(1);
+    expect(stats.capturedByOpponent.get("p3")).toBe(1);
+    expect(stats.capturedByOpponent.get("p4")).toBe(1);
+    expect(stats.capturedByOpponent.get("p5")).toBe(1);
   });
 });
