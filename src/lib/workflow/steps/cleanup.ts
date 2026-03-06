@@ -72,6 +72,22 @@ export async function failMatch(matchId: string): Promise<void> {
   });
 }
 
+/**
+ * Last-resort fallback: force-set match status to failed in DB and Redis.
+ * This is a step function so it runs in Node.js (not the workflow VM),
+ * avoiding the EventTarget crash from bundled @upstash/redis.
+ */
+export async function forceFailMatch(matchId: string): Promise<void> {
+  "use step";
+
+  await db
+    .update(matches)
+    .set({ status: "failed", completedAt: new Date() })
+    .where(eq(matches.id, matchId));
+  await redis.set(redisKeys.matchStatus(matchId), "failed").catch(() => {});
+  await redis.srem(redisKeys.activeMatches, matchId).catch(() => {});
+}
+
 export async function cleanupMatch(matchId: string): Promise<void> {
   "use step";
 
