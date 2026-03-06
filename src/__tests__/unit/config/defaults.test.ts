@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { DEFAULT_MATCH_CONFIG, SCORING, SANDBOX_CONFIG } from "@/lib/config/defaults";
 import { matchConfigSchema } from "@/lib/config/types";
+import { CTF_ELIGIBLE_MODELS } from "@/lib/ai/models";
 
 describe("DEFAULT_MATCH_CONFIG", () => {
   it("passes schema validation", () => {
@@ -20,6 +21,13 @@ describe("DEFAULT_MATCH_CONFIG", () => {
 
   it("has at least 2 models", () => {
     expect(DEFAULT_MATCH_CONFIG.models.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("default models exist in CTF_ELIGIBLE_MODELS", () => {
+    const eligibleIds = new Set(CTF_ELIGIBLE_MODELS.map((m) => m.id));
+    for (const modelId of DEFAULT_MATCH_CONFIG.models) {
+      expect(eligibleIds.has(modelId)).toBe(true);
+    }
   });
 });
 
