@@ -32,7 +32,7 @@ export function FlagLog({
     <div className="border border-card-border rounded-lg bg-card overflow-hidden">
       <div className="px-4 py-3 border-b border-card-border flex items-center justify-between">
         <h3 className="font-mono text-sm font-medium">Flag Captures</h3>
-        <span className="text-xs text-accent">
+        <span className="text-xs text-success">
           {validCaptures.length} captured
         </span>
       </div>
@@ -75,7 +75,7 @@ export function FlagLog({
                 </div>
                 <div className="text-right">
                   {capture.isValid ? (
-                    <span className="text-accent text-xs font-mono">
+                    <span className="text-success text-xs font-mono">
                       +{capture.pointsAwarded ?? 0}
                     </span>
                   ) : (

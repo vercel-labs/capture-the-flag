@@ -406,7 +406,7 @@ function PlayerCard({
 
   return (
     <div
-      className={`p-4 flex flex-col gap-3 bg-card ${isWinner ? "ring-1 ring-inset ring-accent/30" : ""}`}
+      className={`p-4 flex flex-col gap-3 bg-card ${isWinner ? "ring-1 ring-inset ring-success/30" : ""}`}
     >
       {/* Header */}
       <div className="flex items-center gap-2">
@@ -422,7 +422,7 @@ function PlayerCard({
       {/* Badges */}
       <div className="flex flex-wrap gap-1.5">
         {isWinner && (
-          <span className="text-xs font-mono font-medium text-accent bg-accent/10 px-2 py-0.5 rounded">
+          <span className="text-xs font-mono font-medium text-success bg-success/10 px-2 py-0.5 rounded">
             WINNER
           </span>
         )}
@@ -467,7 +467,7 @@ function PlayerCard({
         </div>
         <SandboxStatus status={player.attackStatus} />
         <div className="text-xs font-mono tabular-nums">
-          <span className="text-accent">{stats.totalCaptured}</span>
+          <span className="text-success">{stats.totalCaptured}</span>
           <span className="text-muted"> captured</span>
           <span className="text-muted mx-1">/</span>
           <span className="text-danger">{stats.totalLost}</span>
@@ -478,7 +478,7 @@ function PlayerCard({
           <div className="space-y-0.5 pt-1 border-t border-danger/10">
             {[...stats.capturedByOpponent.entries()].map(([opponentId, count]) => (
               <div key={opponentId} className="text-[10px] text-muted truncate">
-                <span className="text-accent">{count}</span>
+                <span className="text-success">{count}</span>
                 {" vs "}
                 <span className="font-medium">{allPlayers.get(opponentId) ?? opponentId}</span>
               </div>

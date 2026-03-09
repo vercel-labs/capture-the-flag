@@ -59,7 +59,7 @@ export function LeaderboardTable({ data }: { data: LeaderboardEntry[] }) {
               <td className="py-3 px-2 text-right tabular-nums">
                 {((entry.winRate ?? 0) * 100).toFixed(0)}%
               </td>
-              <td className="py-3 px-2 text-right tabular-nums text-accent">
+              <td className="py-3 px-2 text-right tabular-nums text-success">
                 {entry.totalFlagsCaptured ?? 0}
               </td>
               <td className="py-3 px-2 text-right tabular-nums text-danger">

@@ -22,8 +22,8 @@ const STATUS_COLORS: Record<string, string> = {
   building: "text-warning",
   deploying: "text-warning",
   attacking: "text-danger",
-  scoring: "text-accent",
-  completed: "text-accent",
+  scoring: "text-success",
+  completed: "text-success",
   failed: "text-danger",
   cancelled: "text-muted",
 };
@@ -59,7 +59,7 @@ export function MatchCard({ match }: MatchCardProps) {
           {match.players.map((player) => (
             <div
               key={player.id}
-              className={`flex items-center gap-1.5 ${player.id === match.winnerId ? "ring-1 ring-accent rounded-full px-1.5 py-0.5" : ""}`}
+              className={`flex items-center gap-1.5 ${player.id === match.winnerId ? "ring-1 ring-success rounded-full px-1.5 py-0.5" : ""}`}
             >
               <ModelAvatar modelId={player.modelId} size="sm" />
               <span className="text-xs font-mono tabular-nums">
@@ -72,7 +72,7 @@ export function MatchCard({ match }: MatchCardProps) {
         <div className="flex items-center justify-between text-xs text-muted">
           <span>{startDate}</span>
           {winner && (
-            <span className="text-accent">
+            <span className="text-success">
               Winner: {winner.modelId.split("/")[1]}
             </span>
           )}
