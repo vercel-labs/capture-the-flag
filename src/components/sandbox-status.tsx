@@ -6,7 +6,7 @@ interface SandboxStatusProps {
 const STATUS_STYLES: Record<string, { color: string; dot: string }> = {
   pending: { color: "text-muted", dot: "bg-muted" },
   building: { color: "text-warning", dot: "bg-warning animate-pulse" },
-  completed: { color: "text-accent", dot: "bg-accent" },
+  completed: { color: "text-success", dot: "bg-success" },
   failed: { color: "text-danger", dot: "bg-danger" },
   deploying: { color: "text-warning", dot: "bg-warning animate-pulse" },
   live: { color: "text-accent", dot: "bg-accent animate-pulse" },

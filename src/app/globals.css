@@ -1,25 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
+  --background: #ffffff;
   --foreground: #171717;
-  --card: #ffffff;
+  --card: #fafafa;
   --card-border: #e5e5e5;
   --muted: #737373;
-  --accent: #16a34a;
-  --accent-dim: #bbf7d0;
+  --accent: #0070F3;
+  --accent-dim: #d3e5ff;
+  --success: #16a34a;
+  --success-dim: #bbf7d0;
   --danger: #dc2626;
   --warning: #d97706;
 }
 
 .dark {
-  --background: #0a0a0a;
+  --background: #000000;
   --foreground: #ededed;
-  --card: #141414;
-  --card-border: #262626;
-  --muted: #737373;
-  --accent: #22c55e;
-  --accent-dim: #166534;
+  --card: #111111;
+  --card-border: #333333;
+  --muted: #888888;
+  --accent: #3291FF;
+  --accent-dim: #0d2847;
+  --success: #22c55e;
+  --success-dim: #166534;
   --danger: #ef4444;
   --warning: #f59e0b;
 }
@@ -32,6 +36,8 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-dim: var(--accent-dim);
+  --color-success: var(--success);
+  --color-success-dim: var(--success-dim);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
   --font-sans: var(--font-geist-sans);
