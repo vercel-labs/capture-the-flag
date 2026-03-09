@@ -55,7 +55,7 @@ export function MatchCard({ match }: MatchCardProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
           {match.players.map((player) => (
             <div
               key={player.id}
