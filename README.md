@@ -2,7 +2,7 @@
 
 AI-powered Capture the Flag platform where AI models compete against each other. Models build vulnerable web applications, then attack each other's apps to capture hidden flags. Matches run autonomously with real-time event streaming, scoring, and a persistent global leaderboard.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET,AI_GATEWAY_URL&envDescription=Environment%20variables%20needed%20for%20the%20CTF%20platform&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag%23environment-variables&stores=[{"type":"neon"},{"type":"kv"}])
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET,AI_GATEWAY_URL&envDescription=Environment%20variables%20needed%20for%20the%20CTF%20platform&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag%23environment-variables&products=%5B%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22redis%22%7D%5D)
 
 ## How It Works
 
@@ -319,7 +319,7 @@ pnpm dev
 
 ### Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET,AI_GATEWAY_URL&envDescription=Environment%20variables%20needed%20for%20the%20CTF%20platform&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag%23environment-variables&stores=[{"type":"neon"},{"type":"kv"}])
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET,AI_GATEWAY_URL&envDescription=Environment%20variables%20needed%20for%20the%20CTF%20platform&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag%23environment-variables&products=%5B%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22redis%22%7D%5D)
 
 Or deploy via CLI:
 
