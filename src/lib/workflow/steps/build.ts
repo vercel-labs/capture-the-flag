@@ -56,7 +56,12 @@ export async function buildPlayerApp(input: BuildInput): Promise<BuildResult> {
     await emitMatchEvent(matchId, {
       eventType: result.success ? "build_completed" : "build_failed",
       playerId,
-      payload: { modelId, sandboxId: result.sandboxId, appUrl: result.appUrl },
+      payload: {
+        modelId,
+        sandboxId: result.sandboxId,
+        appUrl: result.appUrl,
+        ...(result.error ? { error: result.error } : {}),
+      },
     });
 
     return {

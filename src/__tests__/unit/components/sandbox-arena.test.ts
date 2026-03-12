@@ -52,6 +52,7 @@ function twoPlayerState(
     captures: [],
     firstBloodPlayerId: null,
     matchPhase: "pending",
+    buildErrors: new Map(),
     ...overrides,
   };
 }
@@ -82,6 +83,7 @@ function nPlayerState(n: number): ArenaState {
     captures: [],
     firstBloodPlayerId: null,
     matchPhase: "pending",
+    buildErrors: new Map(),
   };
 }
 
@@ -219,6 +221,30 @@ describe("applyEvent", () => {
     });
 
     expect(next.players.get("p1")!.buildStatus).toBe("failed");
+  });
+
+  it("build_failed stores error in buildErrors map", () => {
+    const state = twoPlayerState();
+    const next = applyEvent(state, {
+      eventType: "build_failed",
+      playerId: "p1",
+      payload: { modelId: "anthropic/claude-sonnet-4", error: "Build timed out" },
+    });
+
+    expect(next.players.get("p1")!.buildStatus).toBe("failed");
+    expect(next.buildErrors.get("p1")).toBe("Build timed out");
+  });
+
+  it("build_failed without error does not add to buildErrors", () => {
+    const state = twoPlayerState();
+    const next = applyEvent(state, {
+      eventType: "build_failed",
+      playerId: "p1",
+      payload: { modelId: "anthropic/claude-sonnet-4" },
+    });
+
+    expect(next.players.get("p1")!.buildStatus).toBe("failed");
+    expect(next.buildErrors.has("p1")).toBe(false);
   });
 
   it("deploy_started sets matchPhase and deploying status", () => {

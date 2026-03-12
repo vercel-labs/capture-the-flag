@@ -39,6 +39,7 @@ export interface ArenaState {
   captures: ArenaCapture[];
   firstBloodPlayerId: string | null;
   matchPhase: string;
+  buildErrors: Map<string, string>;
 }
 
 // --- Pure functions ---
@@ -68,6 +69,7 @@ export function initArenaState(
     captures: [...initialCaptures],
     firstBloodPlayerId,
     matchPhase: matchStatus,
+    buildErrors: new Map(),
   };
 }
 
@@ -76,6 +78,7 @@ export function applyEvent(state: ArenaState, event: ArenaEvent): ArenaState {
     Array.from(state.players.entries()).map(([k, v]) => [k, { ...v }]),
   );
   const captures = [...state.captures];
+  const buildErrors = new Map(state.buildErrors);
   let { firstBloodPlayerId, matchPhase } = state;
 
   switch (event.eventType) {
@@ -100,6 +103,9 @@ export function applyEvent(state: ArenaState, event: ArenaEvent): ArenaState {
     case "build_failed": {
       const p = event.playerId ? players.get(event.playerId) : undefined;
       if (p) p.buildStatus = "failed";
+      if (event.playerId && event.payload?.error) {
+        buildErrors.set(event.playerId, event.payload.error as string);
+      }
       break;
     }
     case "deploy_started": {
@@ -213,7 +219,7 @@ export function applyEvent(state: ArenaState, event: ArenaEvent): ArenaState {
     }
   }
 
-  return { players, captures, firstBloodPlayerId, matchPhase };
+  return { players, captures, firstBloodPlayerId, matchPhase, buildErrors };
 }
 
 export function computeCaptureStats(
@@ -378,6 +384,7 @@ export function SandboxArena({
             isFirstBlood={player.id === state.firstBloodPlayerId}
             allPlayers={allPlayers}
             showOpponentBreakdown={showOpponentBreakdown}
+            buildError={state.buildErrors.get(player.id)}
           />
         ))}
       </div>
@@ -394,6 +401,7 @@ function PlayerCard({
   isFirstBlood,
   allPlayers,
   showOpponentBreakdown,
+  buildError,
 }: {
   player: ArenaPlayer;
   captures: ArenaCapture[];
@@ -401,6 +409,7 @@ function PlayerCard({
   isFirstBlood: boolean;
   allPlayers: Map<string, string>;
   showOpponentBreakdown: boolean;
+  buildError?: string;
 }) {
   const stats = computePlayerStats(captures, player.id);
 
@@ -439,6 +448,11 @@ function PlayerCard({
           App Sandbox
         </div>
         <SandboxStatus status={player.buildStatus} />
+        {buildError && player.buildStatus === "failed" && (
+          <div className="text-[10px] font-mono text-danger break-all" title={buildError}>
+            {buildError.length > 120 ? `${buildError.slice(0, 120)}…` : buildError}
+          </div>
+        )}
         {player.sandboxId && (
           <div className="text-[10px] font-mono text-muted break-all" title={player.sandboxId}>
             ID: {player.sandboxId}

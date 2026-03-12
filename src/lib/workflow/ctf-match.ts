@@ -72,8 +72,12 @@ export async function ctfMatchWorkflow(input: CtfMatchInput) {
       );
     }
 
-    // Step 4a: Mark match as attacking
-    await startAttackPhase(matchId, healthyApps.length);
+    // Step 4a: Mark match as attacking (only healthy players participate)
+    await startAttackPhase(
+      matchId,
+      healthyApps.length,
+      healthyApps.map((a) => a.playerId)
+    );
 
     // Step 4b: Each player attacks all others (each dispatched as a separate step)
     const attackPairs: Array<{
