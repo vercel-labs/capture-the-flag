@@ -76,6 +76,15 @@ export function formatEventDetails(
   if (!payload) return { header: "" };
 
   switch (eventType) {
+    case "build_failed": {
+      const error = payload.error as string | undefined;
+      const modelId = payload.modelId as string | undefined;
+      const header = modelId ? `${modelId}` : "";
+      const lines: string[] = [];
+      if (error) lines.push(error);
+      return { header, lines };
+    }
+
     case "vulnerability_registered": {
       const category = payload.category as string | undefined;
       const ref = category

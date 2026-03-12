@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { MatchCard } from "./match-card";
 import { ModelFilter } from "./model-filter";
+import { NewMatchForm } from "./new-match-form";
 
 interface MatchPlayer {
   id: string;
@@ -84,18 +85,24 @@ export function MatchesList({ initialMatches }: { initialMatches: MatchItem[] })
 
   if (matches.length === 0) {
     return (
-      <div className="text-center text-muted py-16">
-        <p className="text-lg">No matches yet.</p>
-        <p className="text-sm mt-2">
-          Start a match via Slack with{" "}
-          <code className="font-mono text-accent">/ctf start</code>
-        </p>
+      <div className="space-y-6">
+        <NewMatchForm />
+        <div className="text-center text-muted py-16">
+          <p className="text-lg">No matches yet.</p>
+          <p className="text-sm mt-2">
+            Start a match above or via Slack with{" "}
+            <code className="font-mono text-accent">/ctf start</code>
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div>
+      <div className="mb-4">
+        <NewMatchForm />
+      </div>
       <ModelFilter
         models={allModels}
         selected={selectedModels}
