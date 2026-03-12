@@ -9,6 +9,10 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 const makeMatch = (overrides: Partial<MatchItem> = {}): MatchItem => ({
   id: "match-1",
   status: "completed",
