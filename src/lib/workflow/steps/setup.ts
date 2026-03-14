@@ -1,3 +1,4 @@
+import { FatalError } from "workflow";
 import { db } from "@/lib/db/client";
 import { matches, players } from "@/lib/db/schema";
 import { redis } from "@/lib/redis/client";
@@ -5,6 +6,7 @@ import { redisKeys } from "@/lib/redis/keys";
 import { REDIS_TTL } from "@/lib/config/defaults";
 import { matchConfigSchema, type MatchConfig } from "@/lib/config/types";
 import { emitMatchEvent } from "@/lib/events/emitter";
+import { getAvailableCtfModels } from "@/lib/ai/models";
 
 interface SetupInput {
   config: MatchConfig;
@@ -24,6 +26,17 @@ export async function setupMatch(input: SetupInput): Promise<SetupResult> {
   try {
     // Validate config
     const config = matchConfigSchema.parse(input.config);
+
+    // Validate model availability against the gateway
+    const availableModels = await getAvailableCtfModels();
+    const availableIds = new Set(availableModels.map((m) => m.id));
+    const unavailable = config.models.filter((id) => !availableIds.has(id));
+    if (unavailable.length > 0) {
+      throw new FatalError(
+        `Models unavailable on gateway: ${unavailable.join(", ")}. ` +
+        `Available models: ${availableModels.map((m) => m.id).join(", ")}`
+      );
+    }
 
     // Create match record
     const [match] = await db
