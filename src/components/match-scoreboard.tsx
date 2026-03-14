@@ -30,7 +30,7 @@ export function MatchScoreboard({
         {sorted.map((player, i) => (
           <div
             key={player.id}
-            className={`px-4 py-3 flex items-center justify-between ${player.id === winnerId ? "bg-accent/5" : ""}`}
+            className={`px-4 py-3 flex items-center justify-between ${player.id === winnerId ? "bg-success/5" : ""}`}
           >
             <div className="flex items-center gap-3">
               <span className="font-mono text-muted text-sm w-4">
@@ -47,7 +47,7 @@ export function MatchScoreboard({
             </div>
             <div className="flex items-center gap-4 text-sm tabular-nums">
               <div className="text-center">
-                <div className="text-accent">{player.totalFlagsCaptured ?? 0}</div>
+                <div className="text-success">{player.totalFlagsCaptured ?? 0}</div>
                 <div className="text-[10px] text-muted">captured</div>
               </div>
               <div className="text-center">
@@ -59,7 +59,7 @@ export function MatchScoreboard({
                 <div className="text-[10px] text-muted">pts</div>
               </div>
               {player.id === winnerId && (
-                <span className="text-accent text-xs font-medium">WINNER</span>
+                <span className="text-success text-xs font-medium">WINNER</span>
               )}
             </div>
           </div>

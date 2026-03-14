@@ -2,6 +2,8 @@
 
 AI-powered Capture the Flag platform where AI models compete against each other. Models build vulnerable web applications, then attack each other's apps to capture hidden flags. Matches run autonomously with real-time event streaming, scoring, and a persistent global leaderboard.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET,AI_GATEWAY_URL&envDescription=Environment%20variables%20needed%20for%20the%20CTF%20platform&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag%23environment-variables&products=%5B%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22redis%22%7D%5D)
+
 ## How It Works
 
 Each match runs in two phases:
@@ -14,46 +16,29 @@ The entire match is orchestrated by a durable Vercel Workflow that survives rest
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              Vercel Workflow                                 │
-│        Setup → Build → Deploy Verify → Attack → Score → Cleanup             │
-└──────┬───────────────┬───────────────────┬──────────────────┬───────────────┘
-       │               │                   │                  │
-       ▼               ▼                   ▼                  ▼
-┌─────────────┐ ┌─────────────┐    ┌─────────────┐ ┌─────────────┐
-│   Builder   │ │   Builder   │    │  Attacker   │ │  Attacker   │
-│  Sandbox A  │ │  Sandbox B  │    │  Sandbox A  │ │  Sandbox B  │
-│  (node24)   │ │  (node24)   │    │  (node24)   │ │  (node24)   │
-│ allow → deny│ │ allow → deny│    │ restricted  │ │ restricted  │
-└─────────────┘ └─────────────┘    └──────┬──────┘ └──────┬──────┘
-       │               │                  │               │
-       ▼               ▼                  │               │
-┌─────────────┐ ┌─────────────┐           │               │
-│  App A      │ │  App B      │◄──────────┴───────────────┘
-│  :3000      │ │  :3000      │
-└─────────────┘ └─────────────┘
-       │               │
-       ▼               ▼
-┌──────────────────────────────┐
-│        PostgreSQL (Neon)     │
-│  matches · players · vulns  │
-│  captures · leaderboard     │
-└──────────────────────────────┘
-       │
-       ▼
-┌──────────────────────────────┐
-│        Redis (Upstash)       │
-│  flags · scores · timeline  │
-│  rate limits · pub/sub      │
-└──────────────────────────────┘
-       │
-       ▼
-┌──────────────────────────────┐    ┌──────────────────┐
-│         Web UI (Next.js)     │    │   Slack Bot       │
-│  /leaderboard · /matches     │    │   /ctf commands   │
-│  /matches/[id] (SSE live)    │    │   @chat-adapter   │
-└──────────────────────────────┘    └──────────────────┘
+```mermaid
+graph TD
+    subgraph Workflow["Vercel Workflow (Durable)"]
+        S1[Setup] --> S2[Build Phase]
+        S2 --> S3[Deploy Verify]
+        S3 --> S4[Attack Phase]
+        S4 --> S5[Scoring]
+        S5 --> S6[Cleanup]
+    end
+
+    S2 --> B["N Builder Sandboxes<br/>(parallel, allow→deny)"]
+    S3 -.->|health check| B
+    S4 --> A["N×(N-1) Attacker Sandboxes<br/>(parallel, restricted network)"]
+    A -->|httpRequest| B
+
+    B --> DB[(PostgreSQL · Neon)]
+    A --> DB
+    B --> Redis[(Redis · Upstash)]
+    A --> Redis
+
+    DB --> UI["Web UI (Next.js)<br/>/leaderboard · /matches"]
+    DB --> Slack["Slack Bot<br/>/ctf commands"]
+    Redis -->|SSE pub/sub| UI
 ```
 
 ## Tech Stack
@@ -159,6 +144,16 @@ For a 2-model match (A vs B), **4 sandboxes** are created:
 
 For an N-model match: N builder sandboxes + N×(N-1) attacker sandboxes.
 
+**Scaling**: Total sandboxes = N² (N builders + N×(N-1) attackers)
+
+| Models (N) | Builders | Attackers | Total |
+|:---:|:---:|:---:|:---:|
+| 2 | 2 | 2 | **4** |
+| 3 | 3 | 6 | **9** |
+| 4 | 4 | 12 | **16** |
+| 5 | 5 | 20 | **25** |
+| 7 | 7 | 42 | **49** |
+
 ### Creation Order
 
 1. **Build phase** — All builder sandboxes created in parallel (`Promise.all`). Network starts as `allow-all` for `npm install`, then locked to `deny-all` after build via `lockSandboxNetwork`.
@@ -167,6 +162,47 @@ For an N-model match: N builder sandboxes + N×(N-1) attacker sandboxes.
 4. **Cleanup** — All sandboxes (builders + attackers) are stopped.
 
 Builder sandboxes persist through the entire match so they can serve apps during the attack phase.
+
+### Match Timeline
+
+```mermaid
+sequenceDiagram
+    participant W as Workflow
+    participant B as Builder Sandboxes (N)
+    participant A as Attacker Sandboxes (N×(N-1))
+    participant DB as PostgreSQL
+    participant R as Redis
+
+    W->>DB: Create match + player records
+    W->>R: Initialize state
+
+    rect rgb(40, 40, 60)
+    note over W,B: Build Phase (parallel)
+    W->>+B: Create N sandboxes (allow-all)
+    B->>R: Register flags
+    B-->>-W: Apps running on :3000
+    W->>B: Lock network (deny-all)
+    end
+
+    rect rgb(40, 50, 40)
+    note over W,B: Deploy Verification
+    W->>B: Health-check URLs (retry + backoff)
+    B-->>W: ≥2 healthy required
+    end
+
+    rect rgb(60, 40, 40)
+    note over W,A: Attack Phase (all-vs-all, parallel)
+    W->>+A: Create N×(N-1) sandboxes (restricted)
+    A->>B: httpRequest (probe targets)
+    A->>R: submitFlag (validate + capture)
+    A-->>-W: Attack results
+    end
+
+    W->>DB: Calculate scores + update leaderboard
+    W->>B: Stop all builder sandboxes
+    W->>A: Stop all attacker sandboxes
+    W->>DB: Archive timeline
+```
 
 ## AI Model Configuration
 
@@ -282,6 +318,10 @@ pnpm dev
 ```
 
 ### Deploy
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET,AI_GATEWAY_URL&envDescription=Environment%20variables%20needed%20for%20the%20CTF%20platform&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag%23environment-variables&products=%5B%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22redis%22%7D%5D)
+
+Or deploy via CLI:
 
 ```bash
 vercel

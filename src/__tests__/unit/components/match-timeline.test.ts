@@ -2,6 +2,39 @@ import { describe, it, expect } from "vitest";
 import { formatEventDetails } from "@/components/match-timeline";
 
 describe("formatEventDetails", () => {
+  describe("build_failed", () => {
+    it("formats with error reason and model ID", () => {
+      const detail = formatEventDetails("build_failed", {
+        modelId: "openai/gpt-4.1",
+        sandboxId: "sbx_123",
+        appUrl: "",
+        error: "Build timed out after 600 seconds",
+      });
+
+      expect(detail.header).toBe("openai/gpt-4.1");
+      expect(detail.lines).toContain("Build timed out after 600 seconds");
+    });
+
+    it("handles missing error gracefully", () => {
+      const detail = formatEventDetails("build_failed", {
+        modelId: "openai/gpt-4.1",
+        sandboxId: "sbx_123",
+      });
+
+      expect(detail.header).toBe("openai/gpt-4.1");
+      expect(detail.lines).toHaveLength(0);
+    });
+
+    it("handles missing model ID", () => {
+      const detail = formatEventDetails("build_failed", {
+        error: "Some error",
+      });
+
+      expect(detail.header).toBe("");
+      expect(detail.lines).toContain("Some error");
+    });
+  });
+
   describe("vulnerability_registered", () => {
     it("formats full payload with CWE reference", () => {
       const detail = formatEventDetails("vulnerability_registered", {
