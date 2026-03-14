@@ -134,11 +134,11 @@ export const CTF_ELIGIBLE_MODELS: CtfEligibleModel[] = [
 const GATEWAY_TIMEOUT_MS = 2500;
 
 /**
- * Returns SelectOptionElement[] for use in Select components.
- * Filters CTF_ELIGIBLE_MODELS against gateway availability.
- * Falls back to the full curated list if gateway is unreachable.
+ * Returns the subset of CTF_ELIGIBLE_MODELS that the gateway can actually route.
+ * Falls back to the full curated list if the gateway is unreachable or returns
+ * fewer than 2 matching models.
  */
-export async function getCtfModelOptions(): Promise<SelectOptionElement[]> {
+export async function getAvailableCtfModels(): Promise<CtfEligibleModel[]> {
   try {
     const { models } = await Promise.race([
       gateway.getAvailableModels(),
@@ -154,17 +154,27 @@ export async function getCtfModelOptions(): Promise<SelectOptionElement[]> {
     );
 
     if (languageModelIds.size === 0) {
-      return toSelectOptions(CTF_ELIGIBLE_MODELS);
+      return CTF_ELIGIBLE_MODELS;
     }
 
     const available = CTF_ELIGIBLE_MODELS.filter((m) =>
       languageModelIds.has(m.id)
     );
 
-    return toSelectOptions(available.length >= 2 ? available : CTF_ELIGIBLE_MODELS);
+    return available.length >= 2 ? available : CTF_ELIGIBLE_MODELS;
   } catch {
-    return toSelectOptions(CTF_ELIGIBLE_MODELS);
+    return CTF_ELIGIBLE_MODELS;
   }
+}
+
+/**
+ * Returns SelectOptionElement[] for use in Select components.
+ * Filters CTF_ELIGIBLE_MODELS against gateway availability.
+ * Falls back to the full curated list if gateway is unreachable.
+ */
+export async function getCtfModelOptions(): Promise<SelectOptionElement[]> {
+  const available = await getAvailableCtfModels();
+  return toSelectOptions(available);
 }
 
 function toSelectOptions(models: CtfEligibleModel[]): SelectOptionElement[] {

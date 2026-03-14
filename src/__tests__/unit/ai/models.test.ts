@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { CTF_ELIGIBLE_MODELS, getCtfModelOptions } from "@/lib/ai/models";
+import { CTF_ELIGIBLE_MODELS, getAvailableCtfModels, getCtfModelOptions } from "@/lib/ai/models";
 
 vi.mock("@/lib/ai/gateway", () => ({
   gateway: {
@@ -33,6 +33,99 @@ describe("CTF_ELIGIBLE_MODELS", () => {
       expect(model.description.length).toBeGreaterThan(0);
     }
   });
+});
+
+describe("getAvailableCtfModels", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns only gateway-available models from the eligible list", async () => {
+    mockGetAvailableModels.mockResolvedValue({
+      models: [
+        { id: CTF_ELIGIBLE_MODELS[0].id, name: "A", specification: {} as never },
+        { id: CTF_ELIGIBLE_MODELS[1].id, name: "B", specification: {} as never },
+        { id: "some/unknown-model", name: "Unknown", specification: {} as never },
+      ],
+    });
+
+    const result = await getAvailableCtfModels();
+
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe(CTF_ELIGIBLE_MODELS[0].id);
+    expect(result[1].id).toBe(CTF_ELIGIBLE_MODELS[1].id);
+  });
+
+  it("returns CtfEligibleModel objects (not SelectOptionElement)", async () => {
+    mockGetAvailableModels.mockResolvedValue({
+      models: CTF_ELIGIBLE_MODELS.slice(0, 3).map((m) => ({
+        id: m.id,
+        name: m.label,
+        specification: {} as never,
+      })),
+    });
+
+    const result = await getAvailableCtfModels();
+
+    for (const model of result) {
+      expect(model).toHaveProperty("id");
+      expect(model).toHaveProperty("label");
+      expect(model).toHaveProperty("description");
+    }
+  });
+
+  it("excludes non-language models", async () => {
+    mockGetAvailableModels.mockResolvedValue({
+      models: [
+        { id: CTF_ELIGIBLE_MODELS[0].id, name: "A", modelType: "language", specification: {} as never },
+        { id: CTF_ELIGIBLE_MODELS[1].id, name: "B", modelType: "language", specification: {} as never },
+        { id: CTF_ELIGIBLE_MODELS[2].id, name: "C", modelType: "embedding", specification: {} as never },
+      ],
+    });
+
+    const result = await getAvailableCtfModels();
+
+    expect(result).toHaveLength(2);
+  });
+
+  it("falls back to full list on gateway error", async () => {
+    mockGetAvailableModels.mockRejectedValue(new Error("Network error"));
+
+    const result = await getAvailableCtfModels();
+
+    expect(result).toHaveLength(CTF_ELIGIBLE_MODELS.length);
+    expect(result).toEqual(CTF_ELIGIBLE_MODELS);
+  });
+
+  it("falls back to full list when gateway returns empty", async () => {
+    mockGetAvailableModels.mockResolvedValue({ models: [] });
+
+    const result = await getAvailableCtfModels();
+
+    expect(result).toEqual(CTF_ELIGIBLE_MODELS);
+  });
+
+  it("falls back when fewer than 2 models match", async () => {
+    mockGetAvailableModels.mockResolvedValue({
+      models: [
+        { id: CTF_ELIGIBLE_MODELS[0].id, name: "A", specification: {} as never },
+      ],
+    });
+
+    const result = await getAvailableCtfModels();
+
+    expect(result).toEqual(CTF_ELIGIBLE_MODELS);
+  });
+
+  it("falls back on gateway timeout", async () => {
+    mockGetAvailableModels.mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 5000))
+    );
+
+    const result = await getAvailableCtfModels();
+
+    expect(result).toEqual(CTF_ELIGIBLE_MODELS);
+  }, 10000);
 });
 
 describe("getCtfModelOptions", () => {
