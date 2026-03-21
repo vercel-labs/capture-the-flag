@@ -68,6 +68,16 @@ describe("isMatchCreationAllowedFromRequest", () => {
     expect(isMatchCreationAllowedFromRequest(req)).toBe(true);
   });
 
+  it("returns true when cookie value is URL-encoded", () => {
+    process.env.DISABLE_CREATE_MATCH_ON_WEB = "true";
+    process.env.MATCH_ON_WEB_OVERRIDE = "secret+with/special=chars";
+    const req = new Request("http://localhost/api/matches", {
+      method: "POST",
+      headers: { cookie: "match-web-secret=secret%2Bwith%2Fspecial%3Dchars" },
+    });
+    expect(isMatchCreationAllowedFromRequest(req)).toBe(true);
+  });
+
   it("handles cookie among multiple cookies", () => {
     process.env.DISABLE_CREATE_MATCH_ON_WEB = "true";
     process.env.MATCH_ON_WEB_OVERRIDE = "my-secret";
@@ -105,6 +115,15 @@ describe("isMatchCreationAllowed", () => {
     process.env.MATCH_ON_WEB_OVERRIDE = "my-secret";
     vi.mocked(cookies).mockResolvedValue({
       get: vi.fn().mockReturnValue({ name: "match-web-secret", value: "my-secret" }),
+    } as never);
+    expect(await isMatchCreationAllowed()).toBe(true);
+  });
+
+  it("returns true when cookie value is URL-encoded", async () => {
+    process.env.DISABLE_CREATE_MATCH_ON_WEB = "true";
+    process.env.MATCH_ON_WEB_OVERRIDE = "secret+with/special=chars";
+    vi.mocked(cookies).mockResolvedValue({
+      get: vi.fn().mockReturnValue({ name: "match-web-secret", value: "secret%2Bwith%2Fspecial%3Dchars" }),
     } as never);
     expect(await isMatchCreationAllowed()).toBe(true);
   });
