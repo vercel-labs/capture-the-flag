@@ -141,6 +141,18 @@ describe("MatchesList", () => {
     expect(links).toHaveLength(2);
   });
 
+  it("hides new match form when matchCreationDisabled is true", () => {
+    const matches = [makeMatch()];
+    render(<MatchesList initialMatches={matches} matchCreationDisabled />);
+    expect(screen.queryByText("+ New Match")).toBeNull();
+  });
+
+  it("hides new match form in empty state when matchCreationDisabled is true", () => {
+    render(<MatchesList initialMatches={[]} matchCreationDisabled />);
+    expect(screen.queryByText("+ New Match")).toBeNull();
+    expect(screen.getByText("No matches yet.")).toBeDefined();
+  });
+
   it("deselecting all models shows all matches again", () => {
     const matches = [
       makeMatch({ id: "match-1" }),

@@ -131,6 +131,11 @@ describe("NewMatchForm", () => {
     expect(screen.getByRole("button", { name: "+ New Match" })).toBeDefined();
   });
 
+  it("renders nothing when disabled", () => {
+    const { container } = render(<NewMatchForm disabled />);
+    expect(container.innerHTML).toBe("");
+  });
+
   it("shows validation error if submitting with fewer than 2 models", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
       new Response(JSON.stringify(sampleModels))

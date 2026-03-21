@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MatchWebSecretCapture } from "@/components/match-web-secret-capture";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -57,6 +59,9 @@ export default function RootLayout({
               </div>
             </div>
           </nav>
+          <Suspense fallback={null}>
+            <MatchWebSecretCapture />
+          </Suspense>
           <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
         </ThemeProvider>
       </body>

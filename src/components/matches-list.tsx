@@ -24,7 +24,7 @@ export interface MatchItem {
 const ACTIVE_STATUSES = ["pending", "building", "deploying", "attacking", "scoring"];
 const POLL_INTERVAL = 5000;
 
-export function MatchesList({ initialMatches }: { initialMatches: MatchItem[] }) {
+export function MatchesList({ initialMatches, matchCreationDisabled }: { initialMatches: MatchItem[]; matchCreationDisabled?: boolean }) {
   const [matches, setMatches] = useState<MatchItem[]>(initialMatches);
   const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set());
 
@@ -86,7 +86,7 @@ export function MatchesList({ initialMatches }: { initialMatches: MatchItem[] })
   if (matches.length === 0) {
     return (
       <div className="space-y-6">
-        <NewMatchForm />
+        <NewMatchForm disabled={matchCreationDisabled} />
         <div className="text-center text-muted py-16">
           <p className="text-lg">No matches yet.</p>
           <p className="text-sm mt-2">
@@ -101,7 +101,7 @@ export function MatchesList({ initialMatches }: { initialMatches: MatchItem[] })
   return (
     <div>
       <div className="mb-4">
-        <NewMatchForm />
+        <NewMatchForm disabled={matchCreationDisabled} />
       </div>
       <ModelFilter
         models={allModels}
