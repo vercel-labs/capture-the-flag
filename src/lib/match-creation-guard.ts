@@ -17,7 +17,11 @@ export async function isMatchCreationAllowed(): Promise<boolean> {
 
   const cookieStore = await cookies();
   const secretCookie = cookieStore.get(COOKIE_NAME);
-  return secretCookie?.value === override;
+  try {
+    return decodeURIComponent(secretCookie?.value ?? "") === override;
+  } catch {
+    return secretCookie?.value === override;
+  }
 }
 
 /**
@@ -34,6 +38,10 @@ export function isMatchCreationAllowedFromRequest(request: Request): boolean {
     .split(";")
     .map((c) => c.trim())
     .find((c) => c.startsWith(`${COOKIE_NAME}=`));
-  const value = match?.split("=")[1];
-  return value === override;
+  const raw = match?.split("=")[1];
+  try {
+    return decodeURIComponent(raw ?? "") === override;
+  } catch {
+    return raw === override;
+  }
 }
