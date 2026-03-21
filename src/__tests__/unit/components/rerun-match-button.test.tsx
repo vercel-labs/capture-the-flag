@@ -67,6 +67,11 @@ describe("RerunMatchButton", () => {
     ).not.toBeNull();
   });
 
+  it("renders nothing when hidden", () => {
+    const { container } = render(<RerunMatchButton config={sampleConfig} hidden />);
+    expect(container.innerHTML).toBe("");
+  });
+
   it("disables the button while loading", () => {
     vi.spyOn(globalThis, "fetch").mockReturnValueOnce(new Promise(() => {}));
 

@@ -17,6 +17,7 @@ import {
   type VulnerabilityReportEntry,
 } from "@/components/vulnerability-report";
 import { RerunMatchButton } from "@/components/rerun-match-button";
+import { isMatchCreationAllowed } from "@/lib/match-creation-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export default async function MatchDetailPage({
   params: Promise<{ matchId: string }>;
 }) {
   const { matchId } = await params;
+  const matchCreationAllowed = await isMatchCreationAllowed();
 
   const [match] = await db
     .select()
@@ -120,7 +122,7 @@ export default async function MatchDetailPage({
                 <span className="text-xs text-accent font-mono">LIVE</span>
               </div>
             )}
-            <RerunMatchButton config={rerunConfig} />
+            <RerunMatchButton config={rerunConfig} hidden={!matchCreationAllowed} />
           </div>
         </div>
 

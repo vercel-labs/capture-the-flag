@@ -6,12 +6,15 @@ import type { MatchConfig } from "@/lib/config/types";
 
 interface RerunMatchButtonProps {
   config: Partial<MatchConfig>;
+  hidden?: boolean;
 }
 
-export function RerunMatchButton({ config }: RerunMatchButtonProps) {
+export function RerunMatchButton({ config, hidden }: RerunMatchButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (hidden) return null;
 
   async function handleRerun() {
     setLoading(true);

@@ -2,10 +2,13 @@ import { db } from "@/lib/db/client";
 import { matches, players } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { MatchesList } from "@/components/matches-list";
+import { isMatchCreationAllowed } from "@/lib/match-creation-guard";
 
 export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
+  const matchCreationAllowed = await isMatchCreationAllowed();
+
   const matchList = await db
     .select()
     .from(matches)
@@ -40,7 +43,7 @@ export default async function MatchesPage() {
         </p>
       </div>
 
-      <MatchesList initialMatches={matchesWithPlayers} />
+      <MatchesList initialMatches={matchesWithPlayers} matchCreationDisabled={!matchCreationAllowed} />
     </div>
   );
 }

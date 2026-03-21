@@ -5,6 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import { start } from "workflow/api";
 import { ctfMatchWorkflow } from "@/lib/workflow/ctf-match";
 import { matchConfigSchema } from "@/lib/config/types";
+import { isMatchCreationAllowedFromRequest } from "@/lib/match-creation-guard";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -33,6 +34,13 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!isMatchCreationAllowedFromRequest(request)) {
+    return NextResponse.json(
+      { error: "Match creation is disabled" },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
   const config = matchConfigSchema.parse(body.config || {});
 

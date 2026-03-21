@@ -10,7 +10,7 @@ const DEFAULT_VULN_COUNT = 5;
 const DEFAULT_BUILD_TIME = 600;
 const DEFAULT_ATTACK_TIME = 600;
 
-export function NewMatchForm() {
+export function NewMatchForm({ disabled }: { disabled?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [models, setModels] = useState<CtfEligibleModel[]>([]);
@@ -72,6 +72,10 @@ export function NewMatchForm() {
       setError(err instanceof Error ? err.message : "Failed to start match");
       setLoading(false);
     }
+  }
+
+  if (disabled) {
+    return null;
   }
 
   if (!open) {
