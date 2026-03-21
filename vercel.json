@@ -3,5 +3,11 @@
     "src/app/.well-known/workflow/v1/step/route.js": {
       "maxDuration": 800
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-stale-matches",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 }
