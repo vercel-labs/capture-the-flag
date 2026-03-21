@@ -319,13 +319,63 @@ pnpm dev
 
 ### Deploy
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET,AI_GATEWAY_URL&envDescription=Environment%20variables%20needed%20for%20the%20CTF%20platform&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag%23environment-variables&products=%5B%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22redis%22%7D%5D)
+#### Step 1: Deploy to Vercel
 
-Or deploy via CLI:
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag&env=SLACK_BOT_TOKEN,SLACK_SIGNING_SECRET&envDescription=Environment%20variables%20needed%20for%20the%20CTF%20platform%20(enter%20%22placeholder%22%20for%20now%20%E2%80%94%20you%20will%20update%20these%20after%20Slack%20setup)&envLink=https%3A%2F%2Fgithub.com%2Fvercel-labs%2Fcapture-the-flag%23environment-variables&products=%5B%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22postgres%22%7D%2C%7B%22type%22%3A%22integration%22%2C%22group%22%3A%22redis%22%7D%5D)
+
+1. Click the **Deploy** button above. Vercel will prompt you to create a new Git repository — pick GitHub and give it a name.
+2. On the **Add Integrations** screen, click **Add** next to both **Neon Postgres** and **Upstash Redis**. These automatically provision `DATABASE_URL`, `KV_REST_API_URL`, and `KV_REST_API_TOKEN` for you.
+3. You will be prompted for `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`. Enter `placeholder` for both — you will get the real values from Slack in the next steps.
+4. Click **Deploy** and wait for the build to finish.
+5. Note your production URL (e.g., `your-project.vercel.app`) — you will need it for Slack setup.
+
+#### Step 2: Create the Slack App
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** → **From a manifest**.
+2. Select the workspace where you want to install the bot.
+3. Choose the **YAML** tab.
+4. Copy the contents of [`slack-manifest.yaml`](./slack-manifest.yaml) from this repo.
+5. Replace all three instances of `CTF_VERCEL_URL` with your Vercel production domain from Step 1 (e.g., `your-project.vercel.app`).
+6. Paste the updated manifest and click **Create**.
+
+#### Step 3: Install the Slack App and Get Credentials
+
+1. On the app settings page, click **Install to Workspace** → **Allow**.
+2. Go to **OAuth & Permissions** in the left sidebar → copy the **Bot User OAuth Token** (starts with `xoxb-`).
+3. Go to **Basic Information** in the left sidebar → under **App Credentials**, copy the **Signing Secret**.
+
+#### Step 4: Add Slack Credentials to Vercel
+
+1. Go to your project in the [Vercel Dashboard](https://vercel.com/dashboard) → **Settings** → **Environment Variables**.
+2. Update `SLACK_BOT_TOKEN` with the `xoxb-...` token from Step 3.
+3. Update `SLACK_SIGNING_SECRET` with the signing secret from Step 3.
+4. Redeploy for the new values to take effect: go to **Deployments** → click the **⋮** menu on the latest deployment → **Redeploy**.
+
+#### Step 5: Set Up the Database
+
+The Neon integration provisions the database, but you need to apply the schema. Clone the repo Vercel created for you and run the migrations:
 
 ```bash
-vercel
+git clone <your-new-repo-url>
+cd capture-the-flag
+pnpm install
+vercel link    # link to the project you just deployed
+vercel env pull .env.local   # pull DATABASE_URL and other env vars
+pnpm db:migrate
 ```
+
+#### Step 6: Enable AI Gateway
+
+1. In the Vercel Dashboard, go to your project → **AI** tab → enable **AI Gateway**.
+2. Run `vercel env pull .env.local` again to pull the OIDC credentials locally.
+
+The AI Gateway uses OIDC authentication by default — no API keys required. On Vercel deployments, tokens are auto-refreshed.
+
+#### Step 7: Verify
+
+1. Open your Vercel URL — you should see the CTF Arena landing page.
+2. In Slack, type `/ctf start --quick` to start a test match with default settings.
+3. Visit `/matches` on your site to watch the match progress in real time.
 
 ## Development
 
@@ -349,5 +399,4 @@ vercel
 | `KV_REST_API_TOKEN` | Upstash Redis REST token | [Upstash](https://upstash.com) or Vercel KV |
 | `SLACK_BOT_TOKEN` | Slack bot OAuth token | [Slack API](https://api.slack.com) |
 | `SLACK_SIGNING_SECRET` | Slack request signing secret | [Slack API](https://api.slack.com) |
-| `AI_GATEWAY_URL` | Vercel AI Gateway endpoint | [Vercel Dashboard](https://vercel.com) |
-| `NEXT_PUBLIC_APP_URL` | Public app URL (default: `http://localhost:3000`) | Your deployment |
+| `NEXT_PUBLIC_APP_URL` | Public app URL (`http://localhost:3000` locally, your Vercel URL in production) | Your deployment |
