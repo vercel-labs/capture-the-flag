@@ -90,28 +90,6 @@ export const CTF_ELIGIBLE_MODELS: CtfEligibleModel[] = [
     label: "Gemini 3 Pro Preview",
     description: "Latest Google preview",
   },
-  // xAI
-  {
-    id: "xai/grok-4",
-    label: "Grok 4",
-    description: "xAI's latest model",
-  },
-  {
-    id: "xai/grok-3",
-    label: "Grok 3",
-    description: "xAI's capable model",
-  },
-  // Mistral
-  {
-    id: "mistral/devstral-2",
-    label: "Devstral 2",
-    description: "Mistral coding model",
-  },
-  {
-    id: "mistral/mistral-large-3",
-    label: "Mistral Large 3",
-    description: "Mistral's flagship",
-  },
   // DeepSeek
   {
     id: "deepseek/deepseek-v3.2",
@@ -122,12 +100,6 @@ export const CTF_ELIGIBLE_MODELS: CtfEligibleModel[] = [
     id: "deepseek/deepseek-v3.1",
     label: "DeepSeek V3.1",
     description: "Strong open model",
-  },
-  // Meta
-  {
-    id: "meta/llama-4-maverick",
-    label: "Llama 4 Maverick",
-    description: "Meta's top open model",
   },
 ];
 
